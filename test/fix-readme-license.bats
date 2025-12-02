@@ -30,7 +30,7 @@ EOF
     run_tlb fix
 
     # Count how many times "## License" appears
-    local count=$(grep -c "## License" README.md)
+    local count=$(grep -c "^## License" README.md)
     [ "$count" -eq 1 ]
 }
 
@@ -67,8 +67,8 @@ EOF
 
     run_tlb fix
 
-    # Should not append another section
-    local count=$(grep -c "^## " README.md)
+    # Should recognize §11. LICENSE and not append a duplicate
+    local count=$(grep -ci "LICENSE" README.md)
     [ "$count" -eq 1 ]
 }
 

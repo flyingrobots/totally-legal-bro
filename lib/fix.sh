@@ -70,16 +70,27 @@ function create_license_template() {
     local year="$3"
 
     # Path to canonical license templates
+    if [[ -z "${SCRIPT_DIR:-}" ]]; then
+        echo "ERROR: SCRIPT_DIR not set; cannot find license templates" >&2
+        return 1
+    fi
+
     local template_file="${SCRIPT_DIR}/licenses/templates/${license}.txt"
+
+    # Escape replacement values for sed so names with /, \\, or & don't break substitutions
+    local escaped_owner
+    escaped_owner=$(printf '%s\n' "${owner}" | sed -e 's/[\/&]/\\&/g')
+    local escaped_year
+    escaped_year=$(printf '%s\n' "${year}" | sed -e 's/[\/&]/\\&/g')
 
     if [[ -f "${template_file}" ]]; then
         # Use canonical template with substitutions
-        sed -e "s/<year>/${year}/g" \
-            -e "s/<copyright holders>/${owner}/g" \
-            -e "s/(c) <year>/(c) ${year}/g" \
-            -e "s/Copyright (c) <year>/Copyright © ${year}/g" \
-            -e "s/\[yyyy\]/${year}/g" \
-            -e "s/\[name of copyright owner\]/${owner}/g" \
+        sed -e "s/<year>/${escaped_year}/g" \
+            -e "s/<copyright holders>/${escaped_owner}/g" \
+            -e "s/(c) <year>/(c) ${escaped_year}/g" \
+            -e "s/Copyright (c) <year>/Copyright © ${escaped_year}/g" \
+            -e "s/\[yyyy\]/${escaped_year}/g" \
+            -e "s/\[name of copyright owner\]/${escaped_owner}/g" \
             "${template_file}"
     else
         # Fallback for unknown licenses

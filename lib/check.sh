@@ -85,7 +85,7 @@ function check_license_file() {
 
     for pattern in "${placeholder_patterns[@]}"; do
         if grep -qiE "${pattern}" LICENSE; then
-            echo -e "${YELLOW}WARN${NC}"
+            echo -e "${RED}FAIL${NC}"
             echo "  → LICENSE contains placeholder text: ${pattern}"
             echo "  → Please replace with complete license text"
             : $((CHECK_FAILURES++))

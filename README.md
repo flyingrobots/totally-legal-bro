@@ -200,6 +200,8 @@ export PATH="$PWD:$PATH"  # Add this to your shell rc file
 ./totally-legal-bro --help
 ```
 
+> Docker builds expect the tracked `licenses/` directory (with license templates) to be present in the build context—keep it in place or your build will fail.
+
 **Requirements**: Bash, git, jq
 
 ---

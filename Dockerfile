@@ -21,6 +21,9 @@ COPY licenses /app/licenses
 # Make CLI executable
 RUN chmod +x /app/totally-legal-bro
 
+# Ensure library scripts are executable (needed when git loses exec bits)
+RUN find /app/lib -type f \( -name '*.sh' -o -perm -u=x -o -perm -g=x -o -perm -o=x \) -exec chmod +x {} \;
+
 # Add to PATH
 ENV PATH="/app:${PATH}"
 
