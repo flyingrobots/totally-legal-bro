@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+# SPDX-License-Identifier: Apache-2.0
+# Copyright © 2025 James Ross <james@flyingrobots.dev>
+
 # Config parser and validator for .legalbro.json
 
 CONFIG_FILE=".legalbro.json"

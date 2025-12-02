@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+# SPDX-License-Identifier: Apache-2.0
+# Copyright © 2025 James Ross <james@flyingrobots.dev>
+
 # Check command: Validate LICENSE, headers, and dependencies
 
 # Global state for tracking failures
@@ -67,6 +71,27 @@ function check_license_file() {
         : $((CHECK_FAILURES++))
         return
     fi
+
+    # Check for placeholder/bogus text that indicates an incomplete license
+    local placeholder_patterns=(
+        '\[Full.*text.*here\]'
+        '\[.*license.*text.*\]'
+        'TODO'
+        'PLACEHOLDER'
+        '\[yyyy\]'
+        '\[name of copyright owner\]'
+        '\[fullname\]'
+    )
+
+    for pattern in "${placeholder_patterns[@]}"; do
+        if grep -qiE "${pattern}" LICENSE; then
+            echo -e "${YELLOW}WARN${NC}"
+            echo "  → LICENSE contains placeholder text: ${pattern}"
+            echo "  → Please replace with complete license text"
+            : $((CHECK_FAILURES++))
+            return
+        fi
+    done
 
     echo -e "${GREEN}PASS${NC}"
 }

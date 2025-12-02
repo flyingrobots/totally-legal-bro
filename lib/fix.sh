@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+# SPDX-License-Identifier: Apache-2.0
+# Copyright © 2025 James Ross <james@flyingrobots.dev>
+
 # Fix command: Auto-repair missing headers and files
 
 declare -i FIX_COUNT=0
@@ -65,68 +69,31 @@ function create_license_template() {
     local owner="$2"
     local year="$3"
 
-    case "${license}" in
-        MIT)
-            cat <<EOF
-MIT License
+    # Path to canonical license templates
+    local template_file="${SCRIPT_DIR}/licenses/templates/${license}.txt"
 
-Copyright © ${year} ${owner}
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-EOF
-            ;;
-        Apache-2.0)
-            cat <<EOF
-                                 Apache License
-                           Version 2.0, January 2004
-                        http://www.apache.org/licenses/
-
-   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
-
-   [Full Apache 2.0 license text would go here]
-
-   Copyright © ${year} ${owner}
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-EOF
-            ;;
-        *)
-            cat <<EOF
+    if [[ -f "${template_file}" ]]; then
+        # Use canonical template with substitutions
+        sed -e "s/<year>/${year}/g" \
+            -e "s/<copyright holders>/${owner}/g" \
+            -e "s/(c) <year>/(c) ${year}/g" \
+            -e "s/Copyright (c) <year>/Copyright © ${year}/g" \
+            -e "s/\[yyyy\]/${year}/g" \
+            -e "s/\[name of copyright owner\]/${owner}/g" \
+            "${template_file}"
+    else
+        # Fallback for unknown licenses
+        cat <<EOF
 ${license} License
 
 Copyright © ${year} ${owner}
 
 [License text for ${license}]
 For full license text, see: https://spdx.org/licenses/${license}.html
+
+WARNING: This is a placeholder. Please replace with the full ${license} license text.
 EOF
-            ;;
-    esac
+    fi
 }
 
 function fix_notice_file() {
@@ -172,8 +139,9 @@ EOF
         return
     fi
 
-    # Check if license section exists
-    if grep -qi "## License" README.md; then
+    # Check if license section exists (case-insensitive, flexible matching)
+    # Match variations like "## License", "## §11. LICENSE", "## LICENSE", etc.
+    if grep -qiE "^#{1,3} .*[Ll]icense" README.md; then
         echo -e "${GREEN}exists${NC}"
         return
     fi

@@ -16,6 +16,7 @@ WORKDIR /app
 # Copy the tool
 COPY totally-legal-bro /app/totally-legal-bro
 COPY lib /app/lib
+COPY licenses /app/licenses
 
 # Make CLI executable
 RUN chmod +x /app/totally-legal-bro
