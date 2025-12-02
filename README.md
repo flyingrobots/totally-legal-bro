@@ -1,8 +1,8 @@
+<div align="center">
 # ⚖️ THE TOTALLY-LEGAL-BRO ACT OF 2025
 
 (As Ratified by the Grand Council of DevOps, the Senate of Open Source, and the Elders of SPDX)
 
-<div align="center">
 An Act
 To impose order upon chaotic repos, ensure the presence of LICENSE files, regulate SPDX header proliferation, suppress unlicensed dependencies, and maintain the sanctity of the Vibes.
 </div>
@@ -206,7 +206,7 @@ Example header:
 ## TITLE X — TESTING REGIME
 
 ```bash
-./test.sh          # uses docker-compose; add --build to rebuild image
+./test.sh   # uses docker-compose; add --build to rebuild image
 ```
 
 Powered by bats-core (pinned 1.11.0) and Docker for hermetic vibes.
@@ -313,4 +313,8 @@ Apache-2.0 — see [LICENSE](./LICENSE).
 
 Questions? Issues? Summon The Bro: https://github.com/flyingrobots/totally-legal-bro/issues
 
+---
+
+<div align="center">
 🤙 *Stay legal, stay chill* 🤙
+</div>
