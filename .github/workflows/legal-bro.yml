@@ -1,0 +1,43 @@
+name: Legal Bro CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  legal-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Run totally-legal-bro check (JSON)
+        run: |
+          chmod +x ./totally-legal-bro
+          ./totally-legal-bro --json check
+
+  bats-tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install docker-compose (python-based)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip
+          sudo pip3 install docker-compose
+
+      - name: Make scripts executable
+        run: chmod +x ./test.sh ./totally-legal-bro
+
+      - name: Run BATS suite via Docker
+        env:
+          DOCKER_BUILDKIT: 1
+        run: ./test.sh --build
