@@ -23,17 +23,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-22.04, ubuntu-latest]
+        os: [ubuntu-latest]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Docker Compose v2 (system package) and shim v1 command
+      - name: Install Docker Compose v2 (system package)
         run: |
           sudo apt-get update
           sudo apt-get install -y docker-compose-plugin
-          # GH runners have docker compose v2 via plugin; add legacy shim for scripts
-          sudo ln -sf /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose || true
+          docker compose version
 
       - name: Make scripts executable
         run: chmod +x ./test.sh ./totally-legal-bro
@@ -41,4 +40,4 @@ jobs:
       - name: Run BATS suite via Docker
         env:
           DOCKER_BUILDKIT: 1
-        run: ./test.sh --build
+        run: docker compose version && ./test.sh --build
