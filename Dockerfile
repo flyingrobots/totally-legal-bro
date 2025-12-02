@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
 
 # Install bats-core from official release with checksum
 ENV BATS_VERSION=1.11.0
-ENV BATS_SHA256=5f50e9c4a2e7a39979f68de7975cdc8e90d518d04279314f0b0ec98c024aaa99
+ENV BATS_SHA256=aeff09fdc8b0c88b3087c99de00cf549356d7a2f6a69e3fcec5e0e861d2f9063
 RUN curl -L "https://github.com/bats-core/bats-core/archive/v${BATS_VERSION}.tar.gz" -o /tmp/bats.tar.gz \
     && echo "${BATS_SHA256}  /tmp/bats.tar.gz" | sha256sum -c - \
     && tar -xf /tmp/bats.tar.gz -C /tmp \
@@ -30,8 +30,8 @@ COPY licenses /app/licenses
 # Make CLI executable
 RUN chmod +x /app/totally-legal-bro
 
-# Ensure library scripts are executable (needed when git loses exec bits)
-RUN find /app/lib -type f \( -name '*.sh' -o -perm -u=x -o -perm -g=x -o -perm -o=x \) -exec chmod +x {} \;
+# Ensure .sh library scripts are executable (needed when git loses exec bits)
+RUN find /app/lib -type f -name "*.sh" -exec chmod +x {} +
 
 # Add to PATH
 ENV PATH="/app:${PATH}"

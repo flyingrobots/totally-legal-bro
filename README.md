@@ -1,8 +1,10 @@
-<div align="center">
 # ⚖️ THE TOTALLY-LEGAL-BRO ACT OF 2025
 
-(As Ratified by the Grand Council of DevOps, the Senate of Open Source, and the Elders of SPDX)
+> (As Ratified by the League of Extraordinary DevOps, the Senate of Legit Open Source, and the Respected Elders of the Counsil on SPDX)
 
+---
+
+<div align="center">
 An Act
 To impose order upon chaotic repos, ensure the presence of LICENSE files, regulate SPDX header proliferation, suppress unlicensed dependencies, and maintain the sanctity of the Vibes.
 </div>
@@ -11,25 +13,23 @@ To impose order upon chaotic repos, ensure the presence of LICENSE files, regula
 
 ## TITLE I — PRELIMINARY FINDINGS
 
-### §1. PREAMBLE (Expanded Edition)
+### §1. PREAMBLE
 
-WHEREAS, developers continue to commit unspeakable acts such as:
+**WHEREAS**, developers continue to commit unspeakable acts such as:
 
 - pushing code without a LICENSE,  
 - omitting SPDX headers,
 - introducing GPL-3.0 deps into MIT projects “because it worked on their machine,”
 
-AND WHEREAS, such behavior constitutes a threat to national stability, international peace, and CI pipelines everywhere;
+**AND WHEREAS**, such behavior constitutes a threat to national stability, international peace, and CI pipelines everywhere;
 
-AND WHEREAS, humanity has suffered enough;
+**AND WHEREAS**, humanity has suffered enough;
 
-THEREFORE, be it enacted by the Authority vested in The Bro:
+**THEREFORE**, be it enacted by the Authority vested in The Bro:
 
-> `totally-legal-bro` SHALL keep your repo totally legal, bro. No cap, this is legit binding.
+> `totally-legal-bro` SHALL keep your repo totally legal, bro™. No cap, this is legit binding.
 
----
-
-## TITLE II — DEFINITIONS (EXPANDED WITH COMMENTARY)
+## TITLE II — DEFINITIONS
 
 1. **“The Bro”** — a Bash-based legal enforcement entity of great and terrible power.
 2. **“Subject Repository”** — any Git territory not yet brought into the light.
@@ -40,11 +40,9 @@ THEREFORE, be it enacted by the Authority vested in The Bro:
 7. **“Illegal Code”** — any file lacking proper headers or licensing, punishable by shame.
 8. **“CI Wrath”** — the swift and merciless failure of pipelines due to compliance violations.
 
----
-
 ## TITLE III — INSTALLATION PROCEDURES
 
-### §1.1 INSTALLATION PROCEDURE (DESTINY VERSION)
+### §1.1 INSTALLATION PROCEDURE
 
 Failure to follow these steps SHALL result in undefined behavior, divine disappointment, or both.
 
@@ -63,7 +61,7 @@ git clone https://github.com/flyingrobots/totally-legal-bro.git && cd totally-le
 This SHALL:
 
 - Install The Bro to `~/.totally-legal-bro`,
-- Configure PATH entries,
+- Configure `PATH` entries,
 - And mark your soul for audit.
 
 #### §1.1(c) Path Reconciliation Clause
@@ -78,7 +76,9 @@ export PATH="$HOME/.totally-legal-bro:$PATH"
 totally-legal-bro init
 ```
 
-Creates `.legalbro.json` (the Binding Covenant).
+The Bro SHALL create an empty `.legalbro.json` (the Binding Covenant).   
+
+The Operator SHALL be obligated to fill in details found within `.legalbro.json` to ensure accurate application of The Stoke.
 
 #### §1.1(e) Atonement and Verification
 
@@ -90,9 +90,9 @@ Declares the repo Totally Legal™ under international law.
 
 #### §1.1(f) Windows Exception
 
-Windows machines remain a plane of suffering. The Bro MAY NOT function there. Pull requests SHALL be treated as acts of heroism.
-
----
+**WHEREAS** Windows machines remain a plane of suffering;
+**THEREFORE** The Bro MAY NOT function there. 
+**HENCEFORTH** pull requests addressing this issue SHALL be treated as acts of heroism.
 
 ## TITLE IV — POWERS OF THE BRO
 
@@ -120,10 +120,10 @@ totally-legal-bro fix [--no-headers | --headers-only]
 totally-legal-bro check [--json] [--manifests path1,path2]
 ```
 
-- Validates LICENSE contents
-- Verifies README license mention
-- Audits headers
-- Scans dependency licenses (npm via `npx license-checker`; others TODO; warns if `node_modules` absent)
+- Validates `LICENSE` contents
+- Verifies `README` license mention
+- Audits SPDX headers
+- Scans dependency licenses (npm by inspecting `node_modules/*/package.json` licenses; others `TODO`; warns if `node_modules` absent if `package.json` exists)
 
 ### §2.4 Reporting Requirements
 
@@ -133,19 +133,16 @@ totally-legal-bro report [--json]
 
 Produces a dossier: file status, dependency findings, vibe score (beta, spiritual).
 
----
-
 ## TITLE V — ENFORCEMENT (NOW WITH FEDERAL MENACE)
 
 ### §5.1 Pre-Commit Governance Structure
 
-Git pre-commit hook SHALL block illegal code. Bypassing with `--no-verify` SHALL be logged in the Book of Transgressions.
+Git pre-commit hook SHALL block illegal code.  
+Bypassing with `--no-verify` SHALL be logged in the Book of Transgressions, and is generally frownd upon, dude.  
 
 ### §5.2 Continuous Integration Tribunal
 
 GitHub Actions workflow (`.github/workflows/legal-bro.yml`) SHALL smite PRs that offend the Vibes.
-
----
 
 ## TITLE VI — CONFIGURATION
 
@@ -160,28 +157,24 @@ The Subject Repository SHALL maintain `.legalbro.json` at its root:
 }
 ```
 
-| Field | Required | Purpose |
+| **Field** | **Required** | **Purpose** |
 |-------|----------|---------|
 | `requiredLicense` | ✅ | SPDX license identifier (e.g., `MIT`, `Apache-2.0`) |
 | `ownerName` | ✅ | Copyright holder name and/or email |
 | `headerTemplate` | ❌ | Custom header; supports `{{LICENSE}}`, `{{OWNER}}`, `{{YEAR}}` |
 | `dependencyPolicy` | ❌ | Approved dependency licenses (empty = allow all) |
 
----
-
 ## TITLE VII — DEPENDENCY LICENSE COMPLIANCE
 
-- **npm**: enforced via `npx license-checker --json --production`; fails on licenses outside `dependencyPolicy`; warns if `node_modules` missing.
+- **npm**: enforced by inspecting `node_modules/*/package.json` license fields; fails on licenses outside `dependencyPolicy`; warns if `node_modules` missing.
 - **pip / go / cargo**: TODO; currently warns.
 - Absence of policy = all licenses allowed (but you accept the vibes risk).
 
----
-
 ## TITLE VIII — SUPPORTED JURISDICTIONS (LANGUAGES)
 
-- Hash comments: Python, Ruby, Bash, LaTeX
-- Block comments: JavaScript/TypeScript, Go, Rust, C/C++, Java, PHP
-- Exempt: JSON, TOML, YAML, XML, Markdown (data/config)
+- Hash comments: Python, Ruby, Bash, LaTeX  
+- Block comments: JavaScript/TypeScript, Go, Rust, C/C++, Java, PHP   
+- Exempt: JSON, TOML, YAML, XML, Markdown (data/config)   
 
 Example header:
 
@@ -192,16 +185,13 @@ Example header:
  */
 ```
 
----
-
 ## TITLE IX — EDGE CASES & SPECIAL PROVISIONS
 
-- Shebang lines stay first; headers follow.
-- Honors `.gitignore` by using `git ls-files` (configurable via `GIT_CMD`).
-- Non-duplication: existing correct headers aren’t duplicated.
-- Copyright symbol flexibility: `©` or `(c)` accepted.
+The Bro SHALL:
 
----
+- Ensure that shebang lines stay first; headers follow.
+- Honor `.gitignore` by using `git ls-files` (configurable via `GIT_CMD`).
+- Permit common copyright symbols: `©` or `(c)` accepted.
 
 ## TITLE X — TESTING REGIME
 
@@ -209,9 +199,8 @@ Example header:
 ./test.sh   # uses docker-compose; add --build to rebuild image
 ```
 
-Powered by bats-core (pinned 1.11.0) and Docker for hermetic vibes.
+Powered by `bats-core` (pinned 1.11.0) and Docker for hermetic vibes.
 
----
 
 ## TITLE XI — CLI FLAGS (THE BRO CODEX)
 
@@ -223,15 +212,11 @@ Powered by bats-core (pinned 1.11.0) and Docker for hermetic vibes.
 - `fix --headers-only` — only inject headers
 - `check --manifests <paths>` — comma-separated manifest override
 
----
-
 ## TITLE XII — SUPREME CASE LAW
 
 - **Bro v. The Developer (2025)** — “Forgetting your LICENSE is not a vibe.”
 - **CI Pipeline v. Guy Who Imported a GPL Dependency (2024)** — “He knew what he did.”
 - **The People v. touch LICENSE With No Contents (2021)** — “Absolutely not.”
-
----
 
 ## TITLE XIII — THE BRO SEAL OF AUTHENTICITY
 
@@ -299,13 +284,9 @@ Even if all else fails, **The Stoke SHALL remain immaculate.**
 
 Running any Bro command constitutes assent.
 
----
-
 ## TITLE XV — RATIFICATION
 
 By invoking The Bro, you consent to legal compliance, spiritual cleansing, enhanced vibes, protection of descendants, and a repo you can show your boss without shame.
-
----
 
 ## TITLE XVI — LICENSE AGREEMENT
 
@@ -316,5 +297,5 @@ Questions? Issues? Summon The Bro: https://github.com/flyingrobots/totally-legal
 ---
 
 <div align="center">
-🤙 *Stay legal, stay chill* 🤙
+🤙 *Stay legal, stay chill* 🤙<br />Copyright © 2025 James Ross, [Flying•Robots](https://github.com/flyingrobots)
 </div>

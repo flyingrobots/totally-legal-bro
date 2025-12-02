@@ -7,7 +7,6 @@
 
 # Allow override for tests via LEGALBRO_CONFIG; default to repo root file
 CONFIG_FILE="${LEGALBRO_CONFIG:-.legalbro.json}"
-: "${GIT_CMD:=git}"
 
 # Check if jq is available
 function require_jq() {

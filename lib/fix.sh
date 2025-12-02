@@ -6,6 +6,7 @@
 # Fix command: Auto-repair missing headers and files
 
 declare -i FIX_COUNT=0
+: "${GIT_CMD:=git}"
 
 function cmd_fix() {
     echo -e "${BLUE}🔧 Auto-fixing legal compliance issues...${NC}"
@@ -17,29 +18,18 @@ function cmd_fix() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --no-headers)
-                skip_headers=1
-                shift
-                ;;
+                skip_headers=1; shift ;;
             --headers-only)
-                headers_only=1
-                shift
-                ;;
-            *)
-                shift
-                ;;
+                headers_only=1; shift ;;
+            *) shift ;;
         esac
     done
 
-    # Validate config exists
     if ! validate_config; then
         exit 1
     fi
 
-    local required_license
-    local owner_name
-    local current_year
-    local header_template
-
+    local required_license owner_name current_year header_template
     required_license=$(get_config "requiredLicense")
     owner_name=$(get_config "ownerName")
     header_template=$(get_config "headerTemplate")
@@ -48,7 +38,6 @@ function cmd_fix() {
     echo "Config: License=${required_license}, Owner=${owner_name}"
     echo ""
 
-    # Run all fixes
     if [[ ${headers_only} -eq 0 ]]; then
         fix_license_file "${required_license}" "${owner_name}" "${current_year}"
         fix_notice_file "${owner_name}"
@@ -82,10 +71,7 @@ function fix_license_file() {
     fi
 
     echo -e "${YELLOW}creating${NC}"
-
-    # Create LICENSE file with template
     create_license_template "${required_license}" "${owner_name}" "${year}" > LICENSE
-
     echo "  → Created LICENSE file with ${required_license} template"
     : $((FIX_COUNT++))
 }
@@ -95,7 +81,6 @@ function create_license_template() {
     local owner="$2"
     local year="$3"
 
-    # Path to canonical license templates
     if [[ -z "${SCRIPT_DIR:-}" ]]; then
         echo "ERROR: SCRIPT_DIR not set; cannot find license templates" >&2
         return 1
@@ -103,14 +88,12 @@ function create_license_template() {
 
     local template_file="${SCRIPT_DIR}/licenses/templates/${license}.txt"
 
-    # Escape replacement values for sed so names with /, \\, or & don't break substitutions
-    local escaped_owner
-    escaped_owner=$(printf '%s\n' "${owner}" | sed -e 's/[\/&]/\\&/g')
-    local escaped_year
-    escaped_year=$(printf '%s\n' "${year}" | sed -e 's/[\/&]/\\&/g')
+    # Escape replacement values for sed (/ & \)
+    local escaped_owner escaped_year
+    escaped_owner=$(printf '%s\n' "${owner}" | sed -e 's/[\\\\/&]/\\&/g')
+    escaped_year=$(printf '%s\n' "${year}" | sed -e 's/[\\\\/&]/\\&/g')
 
     if [[ -f "${template_file}" ]]; then
-        # Use canonical template with substitutions
         sed -e "s/<year>/${escaped_year}/g" \
             -e "s/<copyright holders>/${escaped_owner}/g" \
             -e "s/(c) <year>/(c) ${escaped_year}/g" \
@@ -119,7 +102,6 @@ function create_license_template() {
             -e "s/\[name of copyright owner\]/${escaped_owner}/g" \
             "${template_file}"
     else
-        # Fallback for unknown licenses
         cat <<EOF
 ${license} License
 
@@ -176,9 +158,7 @@ EOF
         return
     fi
 
-    # Check if license section exists (case-insensitive, flexible matching)
     if grep -qiE "^#{1,3} .*[Ll]icense" README.md; then
-        # If section exists but the required license string is missing, rewrite it
         if ! grep -q "${required_license}" README.md; then
             echo -e "${YELLOW}rewriting${NC}"
             rewrite_license_section "${required_license}"
@@ -186,21 +166,17 @@ EOF
             : $((FIX_COUNT++))
             return
         fi
-
         echo -e "${GREEN}exists${NC}"
         return
     fi
 
     echo -e "${YELLOW}appending${NC}"
-
-    # Append license section
     cat >> README.md <<EOF
 
 ## License
 
 This project is licensed under the ${required_license} License - see the [LICENSE](./LICENSE) file for details.
 EOF
-
     echo "  → Added license section to README.md"
     : $((FIX_COUNT++))
 }
@@ -231,9 +207,12 @@ function fix_source_headers() {
 
     echo "Fixing source file headers..."
 
-    # Get all tracked source files (exclude data/config files like JSON, TOML, YAML, XML)
     local files
-    files=$(${GIT_CMD} ls-files | grep -E '\.(sh|bash|py|js|ts|tsx|jsx|go|rs|c|cpp|h|hpp|java|rb|php|tex)$' | grep -v -E '\.(json|toml|yaml|yml|xml|md|txt)$' || true)
+    files=$(${GIT_CMD} ls-files | grep -E '\\.(sh|bash|py|js|ts|tsx|jsx|go|rs|c|cpp|h|hpp|java|rb|php|tex)$' | grep -v -E '\\.(json|toml|yaml|yml|xml|md|txt)$' || true)
+
+    if [[ -z "${files}" ]]; then
+        files=$(find . -type f \( -name "*.sh" -o -name "*.bash" -o -name "*.py" -o -name "*.js" -o -name "*.ts" -o -name "*.tsx" -o -name "*.jsx" -o -name "*.go" -o -name "*.rs" -o -name "*.c" -o -name "*.cpp" -o -name "*.h" -o -name "*.hpp" -o -name "*.java" -o -name "*.rb" -o -name "*.php" -o -name "*.tex" \) | grep -v -E '\\.(json|toml|yaml|yml|xml|md|txt)$' || true)
+    fi
 
     if [[ -z "${files}" ]]; then
         echo "  No source files found"
@@ -243,19 +222,17 @@ function fix_source_headers() {
     local fixed=0
 
     while IFS= read -r file; do
-        # Read first 20 lines
         local header
         header=$(head -n 20 "${file}")
 
-        # Check for SPDX identifier
         local has_spdx=false
         local has_copyright=false
 
-        if echo "${header}" | grep -q "SPDX-License-Identifier:.*${required_license}"; then
+        if echo "${header}" | grep -E -q "SPDX-License-Identifier:.*${required_license}"; then
             has_spdx=true
         fi
 
-        if echo "${header}" | grep -q "Copyright.*${owner_name}"; then
+        if echo "${header}" | grep -E -q "Copyright.*${owner_name}"; then
             has_copyright=true
         fi
 
@@ -263,7 +240,6 @@ function fix_source_headers() {
             continue
         fi
 
-        # Fix the file by prepending header
         inject_header "${file}" "${required_license}" "${owner_name}" "${year}" "${header_template}"
         : $((fixed++))
         : $((FIX_COUNT++))
@@ -288,47 +264,32 @@ function inject_header() {
     local comment_line
     local comment_end
 
-    # Determine comment style
     case "${ext}" in
-        sh|bash|py|rb)
-            comment_line="#"
-            ;;
-        tex)
-            comment_line="%"
-            ;;
+        sh|bash|py|rb) comment_line="#" ;;
+        tex) comment_line="%" ;;
         js|ts|jsx|tsx|go|rs|c|cpp|h|hpp|java|php)
-            comment_start="/*"
-            comment_line=" *"
-            comment_end=" */"
-            ;;
-        *)
-            # Default to #
-            comment_line="#"
-            ;;
+            comment_start="/*"; comment_line=" *"; comment_end=" */" ;;
+        *) comment_line="#" ;;
     esac
 
-    # Create header
     local tmp_file
     tmp_file=$(mktemp)
 
-    # Check if file has shebang
     local has_shebang=false
     if head -n 1 "${file}" | grep -q '^#!'; then
         has_shebang=true
     fi
 
     {
-        # If shebang exists, preserve it first
         if [[ "${has_shebang}" == true ]]; then
-            head -n 1 "${file}"
-            echo ""
+            head -n 1 "${file}"; echo ""
         fi
 
         if [[ -n "${header_template}" ]]; then
             local escaped_license escaped_owner escaped_year
-            escaped_license=$(printf '%s\n' "${license}" | sed -e 's/[\/&]/\\&/g')
-            escaped_owner=$(printf '%s\n' "${owner}" | sed -e 's/[\/&]/\\&/g')
-            escaped_year=$(printf '%s\n' "${year}" | sed -e 's/[\/&]/\\&/g')
+            escaped_license=$(printf '%s\n' "${license}" | sed -e 's/[\\\\/&]/\\&/g')
+            escaped_owner=$(printf '%s\n' "${owner}" | sed -e 's/[\\\\/&]/\\&/g')
+            escaped_year=$(printf '%s\n' "${year}" | sed -e 's/[\\\\/&]/\\&/g')
 
             printf '%s\n' "${header_template}" | \
                 sed -e "s/{{LICENSE}}/${escaped_license}/g" \
@@ -336,18 +297,13 @@ function inject_header() {
                     -e "s/{{YEAR}}/${escaped_year}/g"
             echo ""
         else
-            if [[ -n "${comment_start:-}" ]]; then
-                echo "${comment_start}"
-            fi
+            [[ -n "${comment_start:-}" ]] && echo "${comment_start}"
             echo "${comment_line} SPDX-License-Identifier: ${license}"
             echo "${comment_line} Copyright © ${year} ${owner}"
-            if [[ -n "${comment_end:-}" ]]; then
-                echo "${comment_end}"
-            fi
+            [[ -n "${comment_end:-}" ]] && echo "${comment_end}"
             echo ""
         fi
 
-        # Write rest of file (skip shebang if we already wrote it)
         if [[ "${has_shebang}" == true ]]; then
             tail -n +2 "${file}"
         else
@@ -356,6 +312,5 @@ function inject_header() {
     } > "${tmp_file}"
 
     mv "${tmp_file}" "${file}"
-
     echo "  → Fixed ${file}"
 }

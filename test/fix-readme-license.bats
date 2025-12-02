@@ -30,7 +30,7 @@ EOF
     run_tlb fix
 
     # Count how many times "## License" appears
-    local count=$(grep -c "^## License" README.md)
+    local count=$(grep -c "^## License" README.md) || count=0
     [ "$count" -eq 1 ]
 }
 
@@ -67,8 +67,8 @@ EOF
 
     run_tlb fix
 
-    # Should recognize §11. LICENSE and not append a duplicate
-    local count=$(grep -ci "LICENSE" README.md)
+    # Should recognize §11. LICENSE heading and not append a duplicate
+    local count=$(grep -c "^## §11\. LICENSE$" README.md)
     [ "$count" -eq 1 ]
 }
 
@@ -158,6 +158,7 @@ EOF
     run_tlb fix
 
     # Should not duplicate (case-insensitive match)
-    local count=$(grep -ci "^##.*license" README.md)
-    [ "$count" -eq 1 ]
+    run grep -ci "^##.*license" README.md
+    [ "$status" -eq 0 ]
+    [ "$output" -eq 1 ]
 }

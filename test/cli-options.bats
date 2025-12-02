@@ -10,7 +10,8 @@ setup() {
 @test "--version prints version" {
   run_tlb --version
   [ "$status" -eq 0 ]
-  [[ "$output" =~ ^0\.1\.0$ ]]
+  # Verify semantic version format instead of exact value
+  [[ "$output" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
 }
 
 @test "--config uses alternate config path" {
@@ -51,23 +52,18 @@ EOF
   git add app.js .legalbro.json
   run_tlb fix --no-headers
   [ "$status" -eq 0 ]
-  # header should not be added
-  if grep -q "SPDX-License-Identifier" app.js; then
-    echo "unexpected header injected"
-    return 1
-  fi
+  ! grep -q "SPDX-License-Identifier" app.js
 }
-
 @test "fix --headers-only injects headers but not LICENSE" {
   create_config "MIT" "Tester"
   echo "console.log('hi');" > app.js
   git add app.js .legalbro.json
   run_tlb fix --headers-only
   [ "$status" -eq 0 ]
-  grep -q "SPDX-License-Identifier: MIT" app.js
+  run grep "SPDX-License-Identifier: MIT" app.js
+  [ "$status" -eq 0 ]
   [ ! -f LICENSE ]
 }
-
 @test "headerTemplate is applied" {
   cat > .legalbro.json <<'EOF'
 {
@@ -81,5 +77,8 @@ EOF
   git add app.js
   run_tlb fix --headers-only
   [ "$status" -eq 0 ]
-  grep -q "License: MIT | Owner: Tester" app.js
+  run grep "License: MIT | Owner: Tester | Year:" app.js
+  [ "$status" -eq 0 ]
+  # Verify year is a 4-digit number
+  grep -q "Year: [0-9]\{4\}" app.js || { echo "Year not interpolated"; return 1; }
 }

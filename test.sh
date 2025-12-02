@@ -9,12 +9,12 @@ set -euo pipefail
 
 if [[ "${1:-}" == "--build" ]]; then
   echo "🧪 Building test container (forced)..."
-  docker-compose build
+  docker-compose build test
 else
   # Build only if image missing
   if ! docker image inspect totally-legal-bro_test:latest >/dev/null 2>&1; then
     echo "🧪 Building test container (no cached image)..."
-    docker-compose build
+    docker-compose build test
   else
     echo "🧪 Using cached test image"
   fi

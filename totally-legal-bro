@@ -12,6 +12,7 @@ VERSION="0.1.0"
 OUTPUT_JSON=0
 QUIET=0
 VERBOSE=0
+CONFIG_FILE="${LEGALBRO_CONFIG:-.legalbro.json}"
 
 # Source all library modules
 source "${LIB_DIR}/config.sh"
@@ -69,7 +70,11 @@ while [[ $# -gt 0 ]]; do
             ;;
         --config)
             LEGALBRO_CONFIG="$2"
-            export LEGALBRO_CONFIG
+            CONFIG_FILE="$2"
+            if [[ ! -r "${CONFIG_FILE}" ]]; then
+                echo "Error: Config file not found or unreadable: ${CONFIG_FILE}" >&2
+                exit 1
+            fi
             shift 2
             ;;
         --json)
@@ -129,3 +134,10 @@ case "${COMMAND}" in
         exit 1
         ;;
 esac
+# Main command router
+# (after parsing global options we may override config path)
+
+# Sync CONFIG_FILE with LEGALBRO_CONFIG if set after sourcing config.sh
+if [[ -n "${LEGALBRO_CONFIG:-}" ]]; then
+    CONFIG_FILE="${LEGALBRO_CONFIG}"
+fi

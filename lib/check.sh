@@ -10,6 +10,7 @@ source "${LIB_DIR}/deps.sh"
 
 # Global state for tracking failures
 declare -i CHECK_FAILURES=0
+: "${GIT_CMD:=git}"
 
 function license_status() {
     local required_license="$1"
@@ -23,29 +24,29 @@ function license_status() {
     license_base=$(echo "${required_license}" | sed 's/-.*//; s/\..*//')
 
     if ! grep -qi "${license_base}" LICENSE; then
-        jq -n --arg status "fail" --arg detail "LICENSE file does not contain ${required_license}" '{status:$status, detail:$detail}'
+        jq -n --arg status "fail" --arg detail "LICENSE file does not contain '${required_license}'" '{status:$status, detail:$detail}'
         return
     fi
 
     # Placeholder detection
     local placeholder_patterns=(
-        '\\[Full.*text.*here\\]'
-        '\\[.*license.*text.*\\]'
+        '\[Full.*text.*here\]'
+        '\[.*license.*text.*\]'
         'TODO'
         'PLACEHOLDER'
-        '\\[yyyy\\]'
-        '\\[name of copyright owner\\]'
-        '\\[fullname\\]'
+        '\[yyyy\]'
+        '\[name of copyright owner\]'
+        '\[fullname\]'
     )
 
     for pattern in "${placeholder_patterns[@]}"; do
         if grep -qiE "${pattern}" LICENSE; then
-            jq -n --arg status "fail" --arg detail "LICENSE contains placeholder text" '{status:$status, detail:$detail}'
+            jq -n --arg status "fail" --arg detail "LICENSE contains placeholder text (${pattern})" '{status:$status, detail:$detail}'
             return
         fi
     done
 
-    jq -n '{status:"pass", detail:"LICENSE present"}'
+    jq -n '{status:"pass", detail:"LICENSE file present"}'
 }
 
 function notice_status() {
@@ -64,8 +65,8 @@ function readme_status() {
         return
     fi
 
-    if ! grep -qi "license" README.md || ! grep -q "${required_license}" README.md; then
-        jq -n --arg status "fail" --arg detail "README.md missing license mention (${required_license})" '{status:$status, detail:$detail}'
+    if ! grep -qi "license" README.md || ! grep -qi "${required_license}" README.md; then
+        jq -n --arg status "fail" --arg detail "README.md should mention the license (${required_license})" '{status:$status, detail:$detail}'
         return
     fi
 
@@ -78,6 +79,10 @@ function headers_status() {
 
     local files
     files=$(${GIT_CMD} ls-files | grep -E '\\.(sh|bash|py|js|ts|tsx|jsx|go|rs|c|cpp|h|hpp|java|rb|php|tex)$' | grep -v -E '\\.(json|toml|yaml|yml|xml|md|txt)$' || true)
+
+    if [[ -z "${files}" ]]; then
+        files=$(find . -type f \( -name "*.sh" -o -name "*.bash" -o -name "*.py" -o -name "*.js" -o -name "*.ts" -o -name "*.tsx" -o -name "*.jsx" -o -name "*.go" -o -name "*.rs" -o -name "*.c" -o -name "*.cpp" -o -name "*.h" -o -name "*.hpp" -o -name "*.java" -o -name "*.rb" -o -name "*.php" -o -name "*.tex" \) | grep -v -E '\\.(json|toml|yaml|yml|xml|md|txt)$' || true)
+    fi
 
     if [[ -z "${files}" ]]; then
         jq -n '{status:"pass", detail:"No source files found", total:0, missing:0, files:[]}'
@@ -96,7 +101,7 @@ function headers_status() {
         local has_spdx=false
         local has_copyright=false
 
-        if echo "${header}" | grep -q "SPDX-License-Identifier:.*${required_license}"; then
+        if echo "${header}" | grep -E -q "SPDX-License-Identifier:.*${required_license}"; then
             has_spdx=true
         fi
 
@@ -115,9 +120,14 @@ function headers_status() {
         status="fail"
     fi
 
+    local detail_msg="${missing}/${total} files missing headers"
+    if [[ ${missing} -gt 0 ]]; then
+        detail_msg="${detail_msg}; missing proper headers"
+    fi
+
     jq -n \
         --arg status "${status}" \
-        --arg detail "${missing}/${total} files missing headers" \
+        --arg detail "${detail_msg}" \
         --argjson total ${total} \
         --argjson missing ${missing} \
         --argjson files "$(printf '%s\n' "${missing_files[@]}" | jq -R . | jq -s .)" \
@@ -125,8 +135,10 @@ function headers_status() {
 }
 
 function cmd_check() {
-    echo -e "${BLUE}🔍 Running legal compliance checks...${NC}"
-    echo ""
+    if [[ "${OUTPUT_JSON}" -eq 0 ]]; then
+        echo -e "${BLUE}🔍 Running legal compliance checks...${NC}"
+        echo ""
+    fi
 
     local manifest_override=""
 
@@ -143,7 +155,7 @@ function cmd_check() {
     done
 
     # Validate config exists
-    if ! validate_config; then
+    if ! validate_config "${CONFIG_FILE}"; then
         exit 1
     fi
 
@@ -152,9 +164,10 @@ function cmd_check() {
 
     required_license=$(get_config "requiredLicense")
     owner_name=$(get_config "ownerName")
-
-    echo "Config: License=${required_license}, Owner=${owner_name}"
-    echo ""
+    if [[ "${OUTPUT_JSON}" -eq 0 ]]; then
+        echo "Config: License=${required_license}, Owner=${owner_name}"
+        echo ""
+    fi
 
     local lic_json notice_json readme_json headers_json deps_json
 
@@ -172,10 +185,11 @@ function cmd_check() {
             --argjson headers "${headers_json}" \
             --argjson dependencies "${deps_json}" \
             '{license:$license, notice:$notice, readme:$readme, headers:$headers, dependencies:$dependencies}'
-        # Count failures/warns to set exit code
         for s in "${lic_json}" "${notice_json}" "${readme_json}" "${headers_json}" "${deps_json}"; do
             status=$(echo "${s}" | jq -r '.status')
-            if [[ "${status}" == "fail" || "${status}" == "warn" ]]; then
+            if [[ "${status}" == "fail" ]]; then
+                : $((CHECK_FAILURES++))
+            elif [[ "${status}" == "warn" ]]; then
                 : $((CHECK_FAILURES++))
             fi
         done
@@ -187,15 +201,20 @@ function cmd_check() {
         render_deps_status "${deps_json}"
     fi
 
-    echo ""
-    if [[ ${CHECK_FAILURES} -eq 0 ]]; then
-        echo -e "${GREEN}✓ All checks passed!${NC}"
-        exit 0
-    else
-        echo -e "${RED}✗ ${CHECK_FAILURES} check(s) failed${NC}"
+    if [[ "${OUTPUT_JSON}" -eq 0 ]]; then
         echo ""
-        echo "Run 'totally-legal-bro fix' to auto-fix common issues"
-        exit 1
+        if [[ ${CHECK_FAILURES} -eq 0 ]]; then
+            echo -e "${GREEN}✓ All checks passed!${NC}"
+            exit 0
+        else
+            echo -e "${RED}✗ ${CHECK_FAILURES} check(s) failed${NC}"
+            echo ""
+            echo "Run 'totally-legal-bro fix' to auto-fix common issues"
+            exit 1
+        fi
+    else
+        # JSON mode: exit code reflects failures
+        [[ ${CHECK_FAILURES} -eq 0 ]] && exit 0 || exit 1
     fi
 }
 
@@ -212,7 +231,6 @@ function render_status() {
         : $((CHECK_FAILURES++))
     elif [[ "${status}" == "warn" ]]; then
         color="${YELLOW}WARN${NC}"
-        : $((CHECK_FAILURES++))
     fi
 
     echo "${label}: ${color} - ${detail}"
@@ -442,16 +460,11 @@ function check_dependencies() {
 }
 
 function check_npm_licenses() {
-    # This is a simplified check - in reality you'd use `license-checker` or similar
-    # For now, we'll just check if node_modules exists
-
     if [[ ! -d "node_modules" ]]; then
         echo -e "    ${YELLOW}SKIP${NC}: node_modules not found (run npm install first)"
         return
     fi
 
-    # Basic check: look for common license files in dependencies
-    # This is a placeholder for more sophisticated license scanning
-    echo -e "    ${YELLOW}INFO${NC}: npm license scanning requires additional tooling"
-    echo "      Recommend: npx license-checker --summary"
+    # Placeholder message now removed; npm scanning handled in deps.sh
+    echo -e "    ${YELLOW}INFO${NC}: npm scanning handled by deps.sh"
 }
