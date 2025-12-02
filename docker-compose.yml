@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  test:
+    build: .
+    volumes:
+      # Mount source for live testing during development
+      - ./totally-legal-bro:/app/totally-legal-bro:ro
+      - ./lib:/app/lib:ro
+      - ./test:/app/test:ro
+    environment:
+      - TERM=xterm-256color
+    command: bats /app/test

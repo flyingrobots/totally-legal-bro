@@ -1,0 +1,15 @@
+# Test output (temp repos created during testing)
+test/tmp/
+
+# Temp files
+*.tmp
+*.log
+.DS_Store
+
+# Editor stuff
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.claude/
