@@ -28,11 +28,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Docker Compose v2 (system package)
+      - name: Install Docker Compose v2
         run: |
           sudo apt-get update
-          sudo apt-get install -y docker-compose-plugin
-          docker compose version
+          sudo apt-get install -y docker.io
+          sudo curl -L "https://github.com/docker/compose/releases/download/v2.24.7/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          docker-compose version
 
       - name: Make scripts executable
         run: chmod +x ./test.sh ./totally-legal-bro
@@ -40,4 +42,4 @@ jobs:
       - name: Run BATS suite via Docker
         env:
           DOCKER_BUILDKIT: 1
-        run: docker compose version && ./test.sh --build
+        run: docker-compose version && ./test.sh --build
