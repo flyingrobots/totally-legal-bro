@@ -1,33 +1,52 @@
 #!/usr/bin/env bash
+
+# SPDX-License-Identifier: Apache-2.0
+# Copyright © 2025 James Ross <james@flyingrobots.dev>
+
 # Fix command: Auto-repair missing headers and files
 
 declare -i FIX_COUNT=0
+: "${GIT_CMD:=git}"
 
 function cmd_fix() {
     echo -e "${BLUE}🔧 Auto-fixing legal compliance issues...${NC}"
     echo ""
 
-    # Validate config exists
+    local skip_headers=0
+    local headers_only=0
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --no-headers)
+                skip_headers=1; shift ;;
+            --headers-only)
+                headers_only=1; shift ;;
+            *) shift ;;
+        esac
+    done
+
     if ! validate_config; then
         exit 1
     fi
 
-    local required_license
-    local owner_name
-    local current_year
-
+    local required_license owner_name current_year header_template
     required_license=$(get_config "requiredLicense")
     owner_name=$(get_config "ownerName")
+    header_template=$(get_config "headerTemplate")
     current_year=$(date +%Y)
 
     echo "Config: License=${required_license}, Owner=${owner_name}"
     echo ""
 
-    # Run all fixes
-    fix_license_file "${required_license}" "${owner_name}" "${current_year}"
-    fix_notice_file "${owner_name}"
-    fix_readme_license "${required_license}"
-    fix_source_headers "${required_license}" "${owner_name}" "${current_year}"
+    if [[ ${headers_only} -eq 0 ]]; then
+        fix_license_file "${required_license}" "${owner_name}" "${current_year}"
+        fix_notice_file "${owner_name}"
+        fix_readme_license "${required_license}"
+    fi
+
+    if [[ ${skip_headers} -eq 0 ]]; then
+        fix_source_headers "${required_license}" "${owner_name}" "${current_year}" "${header_template}"
+    fi
 
     echo ""
     if [[ ${FIX_COUNT} -eq 0 ]]; then
@@ -52,10 +71,7 @@ function fix_license_file() {
     fi
 
     echo -e "${YELLOW}creating${NC}"
-
-    # Create LICENSE file with template
     create_license_template "${required_license}" "${owner_name}" "${year}" > LICENSE
-
     echo "  → Created LICENSE file with ${required_license} template"
     : $((FIX_COUNT++))
 }
@@ -65,68 +81,38 @@ function create_license_template() {
     local owner="$2"
     local year="$3"
 
-    case "${license}" in
-        MIT)
-            cat <<EOF
-MIT License
+    if [[ -z "${SCRIPT_DIR:-}" ]]; then
+        echo "ERROR: SCRIPT_DIR not set; cannot find license templates" >&2
+        return 1
+    fi
 
-Copyright © ${year} ${owner}
+    local template_file="${SCRIPT_DIR}/licenses/templates/${license}.txt"
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+    # Escape replacement values for sed (/ & \)
+    local escaped_owner escaped_year
+    escaped_owner=$(printf '%s\n' "${owner}" | sed -e 's/[\\\\/&]/\\&/g')
+    escaped_year=$(printf '%s\n' "${year}" | sed -e 's/[\\\\/&]/\\&/g')
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-EOF
-            ;;
-        Apache-2.0)
-            cat <<EOF
-                                 Apache License
-                           Version 2.0, January 2004
-                        http://www.apache.org/licenses/
-
-   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
-
-   [Full Apache 2.0 license text would go here]
-
-   Copyright © ${year} ${owner}
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-EOF
-            ;;
-        *)
-            cat <<EOF
+    if [[ -f "${template_file}" ]]; then
+        sed -e "s/<year>/${escaped_year}/g" \
+            -e "s/<copyright holders>/${escaped_owner}/g" \
+            -e "s/(c) <year>/(c) ${escaped_year}/g" \
+            -e "s/Copyright (c) <year>/Copyright © ${escaped_year}/g" \
+            -e "s/\[yyyy\]/${escaped_year}/g" \
+            -e "s/\[name of copyright owner\]/${escaped_owner}/g" \
+            "${template_file}"
+    else
+        cat <<EOF
 ${license} License
 
 Copyright © ${year} ${owner}
 
 [License text for ${license}]
 For full license text, see: https://spdx.org/licenses/${license}.html
+
+WARNING: This is a placeholder. Please replace with the full ${license} license text.
 EOF
-            ;;
-    esac
+    fi
 }
 
 function fix_notice_file() {
@@ -172,36 +158,61 @@ EOF
         return
     fi
 
-    # Check if license section exists
-    if grep -qi "## License" README.md; then
+    if grep -qiE "^#{1,3} .*[Ll]icense" README.md; then
+        if ! grep -q "${required_license}" README.md; then
+            echo -e "${YELLOW}rewriting${NC}"
+            rewrite_license_section "${required_license}"
+            echo "  → Updated README license section to ${required_license}"
+            : $((FIX_COUNT++))
+            return
+        fi
         echo -e "${GREEN}exists${NC}"
         return
     fi
 
     echo -e "${YELLOW}appending${NC}"
-
-    # Append license section
     cat >> README.md <<EOF
 
 ## License
 
 This project is licensed under the ${required_license} License - see the [LICENSE](./LICENSE) file for details.
 EOF
-
     echo "  → Added license section to README.md"
     : $((FIX_COUNT++))
+}
+
+function rewrite_license_section() {
+    local required_license="$1"
+    local tmp
+    tmp=$(mktemp)
+
+    awk -v lic="${required_license}" '
+    BEGIN{in_section=0; replaced=0}
+    /^#{1,3} [Ll]icense/ {
+        if(!replaced){
+            print "## License"; print ""; print "This project is licensed under the " lic " License - see the [LICENSE](./LICENSE) file for details."; print "";
+            replaced=1; in_section=1; next
+        }
+    }
+    in_section && /^#/ {in_section=0}
+    !in_section {print}
+    ' README.md > "${tmp}" && mv "${tmp}" README.md
 }
 
 function fix_source_headers() {
     local required_license="$1"
     local owner_name="$2"
     local year="$3"
+    local header_template="$4"
 
     echo "Fixing source file headers..."
 
-    # Get all tracked source files (exclude data/config files like JSON, TOML, YAML, XML)
     local files
-    files=$(git ls-files | grep -E '\.(sh|bash|py|js|ts|tsx|jsx|go|rs|c|cpp|h|hpp|java|rb|php|tex)$' | grep -v -E '\.(json|toml|yaml|yml|xml|md|txt)$' || true)
+    files=$(${GIT_CMD} ls-files | grep -E '\\.(sh|bash|py|js|ts|tsx|jsx|go|rs|c|cpp|h|hpp|java|rb|php|tex)$' | grep -v -E '\\.(json|toml|yaml|yml|xml|md|txt)$' || true)
+
+    if [[ -z "${files}" ]]; then
+        files=$(find . -type f \( -name "*.sh" -o -name "*.bash" -o -name "*.py" -o -name "*.js" -o -name "*.ts" -o -name "*.tsx" -o -name "*.jsx" -o -name "*.go" -o -name "*.rs" -o -name "*.c" -o -name "*.cpp" -o -name "*.h" -o -name "*.hpp" -o -name "*.java" -o -name "*.rb" -o -name "*.php" -o -name "*.tex" \) | grep -v -E '\\.(json|toml|yaml|yml|xml|md|txt)$' || true)
+    fi
 
     if [[ -z "${files}" ]]; then
         echo "  No source files found"
@@ -211,19 +222,17 @@ function fix_source_headers() {
     local fixed=0
 
     while IFS= read -r file; do
-        # Read first 20 lines
         local header
         header=$(head -n 20 "${file}")
 
-        # Check for SPDX identifier
         local has_spdx=false
         local has_copyright=false
 
-        if echo "${header}" | grep -q "SPDX-License-Identifier:.*${required_license}"; then
+        if echo "${header}" | grep -E -q "SPDX-License-Identifier:.*${required_license}"; then
             has_spdx=true
         fi
 
-        if echo "${header}" | grep -q "Copyright.*${owner_name}"; then
+        if echo "${header}" | grep -E -q "Copyright.*${owner_name}"; then
             has_copyright=true
         fi
 
@@ -231,8 +240,7 @@ function fix_source_headers() {
             continue
         fi
 
-        # Fix the file by prepending header
-        inject_header "${file}" "${required_license}" "${owner_name}" "${year}"
+        inject_header "${file}" "${required_license}" "${owner_name}" "${year}" "${header_template}"
         : $((fixed++))
         : $((FIX_COUNT++))
     done <<< "${files}"
@@ -249,60 +257,53 @@ function inject_header() {
     local license="$2"
     local owner="$3"
     local year="$4"
+    local header_template="$5"
 
     local ext="${file##*.}"
     local comment_start
     local comment_line
     local comment_end
 
-    # Determine comment style
     case "${ext}" in
-        sh|bash|py|rb)
-            comment_line="#"
-            ;;
-        tex)
-            comment_line="%"
-            ;;
+        sh|bash|py|rb) comment_line="#" ;;
+        tex) comment_line="%" ;;
         js|ts|jsx|tsx|go|rs|c|cpp|h|hpp|java|php)
-            comment_start="/*"
-            comment_line=" *"
-            comment_end=" */"
-            ;;
-        *)
-            # Default to #
-            comment_line="#"
-            ;;
+            comment_start="/*"; comment_line=" *"; comment_end=" */" ;;
+        *) comment_line="#" ;;
     esac
 
-    # Create header
     local tmp_file
     tmp_file=$(mktemp)
 
-    # Check if file has shebang
     local has_shebang=false
     if head -n 1 "${file}" | grep -q '^#!'; then
         has_shebang=true
     fi
 
     {
-        # If shebang exists, preserve it first
         if [[ "${has_shebang}" == true ]]; then
-            head -n 1 "${file}"
+            head -n 1 "${file}"; echo ""
+        fi
+
+        if [[ -n "${header_template}" ]]; then
+            local escaped_license escaped_owner escaped_year
+            escaped_license=$(printf '%s\n' "${license}" | sed -e 's/[\\\\/&]/\\&/g')
+            escaped_owner=$(printf '%s\n' "${owner}" | sed -e 's/[\\\\/&]/\\&/g')
+            escaped_year=$(printf '%s\n' "${year}" | sed -e 's/[\\\\/&]/\\&/g')
+
+            printf '%s\n' "${header_template}" | \
+                sed -e "s/{{LICENSE}}/${escaped_license}/g" \
+                    -e "s/{{OWNER}}/${escaped_owner}/g" \
+                    -e "s/{{YEAR}}/${escaped_year}/g"
+            echo ""
+        else
+            [[ -n "${comment_start:-}" ]] && echo "${comment_start}"
+            echo "${comment_line} SPDX-License-Identifier: ${license}"
+            echo "${comment_line} Copyright © ${year} ${owner}"
+            [[ -n "${comment_end:-}" ]] && echo "${comment_end}"
             echo ""
         fi
 
-        # Write header comment
-        if [[ -n "${comment_start:-}" ]]; then
-            echo "${comment_start}"
-        fi
-        echo "${comment_line} SPDX-License-Identifier: ${license}"
-        echo "${comment_line} Copyright © ${year} ${owner}"
-        if [[ -n "${comment_end:-}" ]]; then
-            echo "${comment_end}"
-        fi
-        echo ""
-
-        # Write rest of file (skip shebang if we already wrote it)
         if [[ "${has_shebang}" == true ]]; then
             tail -n +2 "${file}"
         else
@@ -311,6 +312,5 @@ function inject_header() {
     } > "${tmp_file}"
 
     mv "${tmp_file}" "${file}"
-
     echo "  → Fixed ${file}"
 }

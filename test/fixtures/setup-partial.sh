@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+# SPDX-License-Identifier: Apache-2.0
+# Copyright © 2025 James Ross <james@flyingrobots.dev>
+
 # Setup a partially compliant test repository
 
 set -euo pipefail

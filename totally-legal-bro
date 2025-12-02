@@ -7,6 +7,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIB_DIR="${SCRIPT_DIR}/lib"
 
+# Version and global toggles
+VERSION="0.1.0"
+OUTPUT_JSON=0
+QUIET=0
+VERBOSE=0
+CONFIG_FILE="${LEGALBRO_CONFIG:-.legalbro.json}"
+
 # Source all library modules
 source "${LIB_DIR}/config.sh"
 source "${LIB_DIR}/check.sh"
@@ -33,6 +40,13 @@ Commands:
     fix         Auto-fix missing headers and repo files
     report      Generate a detailed compliance report
 
+Global Options:
+    --version       Print version and exit
+    --config <path> Use an alternate .legalbro.json
+    --json          JSON output (check/report)
+    --verbose       Verbose output
+    --quiet         Quiet output (minimal)
+
 Options:
     -h, --help  Show this help message
 
@@ -45,6 +59,53 @@ Examples:
 For more info, check docs/SPEC.md
 EOF
 }
+
+# Global option parsing
+ARGS=()
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --version)
+            echo "${VERSION}"
+            exit 0
+            ;;
+        --config)
+            LEGALBRO_CONFIG="$2"
+            CONFIG_FILE="$2"
+            if [[ ! -r "${CONFIG_FILE}" ]]; then
+                echo "Error: Config file not found or unreadable: ${CONFIG_FILE}" >&2
+                exit 1
+            fi
+            shift 2
+            ;;
+        --json)
+            OUTPUT_JSON=1
+            shift
+            ;;
+        --verbose)
+            VERBOSE=1
+            shift
+            ;;
+        --quiet)
+            QUIET=1
+            shift
+            ;;
+        -h|--help|help)
+            show_usage
+            exit 0
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            ARGS+=("$1")
+            shift
+            break
+            ;;
+    esac
+done
+
+set -- "${ARGS[@]}" "$@"
 
 # Main command router
 COMMAND="${1:-}"
@@ -73,3 +134,10 @@ case "${COMMAND}" in
         exit 1
         ;;
 esac
+# Main command router
+# (after parsing global options we may override config path)
+
+# Sync CONFIG_FILE with LEGALBRO_CONFIG if set after sourcing config.sh
+if [[ -n "${LEGALBRO_CONFIG:-}" ]]; then
+    CONFIG_FILE="${LEGALBRO_CONFIG}"
+fi

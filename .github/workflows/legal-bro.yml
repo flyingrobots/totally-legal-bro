@@ -1,0 +1,54 @@
+name: Legal Bro CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  legal-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Run totally-legal-bro check (JSON)
+        run: |
+          chmod +x ./totally-legal-bro
+          ./totally-legal-bro --json check
+
+  bats-tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure Docker Compose available
+        run: |
+          set -e
+          docker --version
+          if docker compose version >/dev/null 2>&1; then
+            docker compose version
+            # create docker-compose shim for scripts
+            echo -e '#!/usr/bin/env sh\nexec docker compose "$@"' | sudo tee /usr/local/bin/docker-compose >/dev/null
+            sudo chmod +x /usr/local/bin/docker-compose
+          elif command -v docker-compose >/dev/null 2>&1; then
+            docker-compose version
+          else
+            sudo curl -L "https://github.com/docker/compose/releases/download/v2.24.7/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+            docker-compose version
+          fi
+
+      - name: Make scripts executable
+        run: chmod +x ./test.sh ./totally-legal-bro
+
+      - name: Run BATS suite via Docker
+        env:
+          DOCKER_BUILDKIT: 1
+        run: docker-compose version && ./test.sh --build
