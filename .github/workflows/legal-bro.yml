@@ -28,13 +28,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Docker + Compose v2 binary
+      - name: Ensure Docker Compose available
         run: |
-          sudo apt-get update
-          sudo apt-get install -y docker.io
-          sudo curl -L "https://github.com/docker/compose/releases/download/v2.24.7/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose
-          sudo chmod +x /usr/local/bin/docker-compose
-          docker-compose version
+          set -e
+          docker --version
+          if docker compose version >/dev/null 2>&1; then
+            docker compose version
+            # create docker-compose shim for scripts
+            echo -e '#!/usr/bin/env sh\nexec docker compose "$@"' | sudo tee /usr/local/bin/docker-compose >/dev/null
+            sudo chmod +x /usr/local/bin/docker-compose
+          elif command -v docker-compose >/dev/null 2>&1; then
+            docker-compose version
+          else
+            sudo curl -L "https://github.com/docker/compose/releases/download/v2.24.7/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+            docker-compose version
+          fi
 
       - name: Make scripts executable
         run: chmod +x ./test.sh ./totally-legal-bro
