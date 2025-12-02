@@ -11,6 +11,25 @@ function cmd_fix() {
     echo -e "${BLUE}🔧 Auto-fixing legal compliance issues...${NC}"
     echo ""
 
+    local skip_headers=0
+    local headers_only=0
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --no-headers)
+                skip_headers=1
+                shift
+                ;;
+            --headers-only)
+                headers_only=1
+                shift
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
+
     # Validate config exists
     if ! validate_config; then
         exit 1
@@ -19,19 +38,26 @@ function cmd_fix() {
     local required_license
     local owner_name
     local current_year
+    local header_template
 
     required_license=$(get_config "requiredLicense")
     owner_name=$(get_config "ownerName")
+    header_template=$(get_config "headerTemplate")
     current_year=$(date +%Y)
 
     echo "Config: License=${required_license}, Owner=${owner_name}"
     echo ""
 
     # Run all fixes
-    fix_license_file "${required_license}" "${owner_name}" "${current_year}"
-    fix_notice_file "${owner_name}"
-    fix_readme_license "${required_license}"
-    fix_source_headers "${required_license}" "${owner_name}" "${current_year}"
+    if [[ ${headers_only} -eq 0 ]]; then
+        fix_license_file "${required_license}" "${owner_name}" "${current_year}"
+        fix_notice_file "${owner_name}"
+        fix_readme_license "${required_license}"
+    fi
+
+    if [[ ${skip_headers} -eq 0 ]]; then
+        fix_source_headers "${required_license}" "${owner_name}" "${current_year}" "${header_template}"
+    fi
 
     echo ""
     if [[ ${FIX_COUNT} -eq 0 ]]; then
@@ -151,8 +177,16 @@ EOF
     fi
 
     # Check if license section exists (case-insensitive, flexible matching)
-    # Match variations like "## License", "## §11. LICENSE", "## LICENSE", etc.
     if grep -qiE "^#{1,3} .*[Ll]icense" README.md; then
+        # If section exists but the required license string is missing, rewrite it
+        if ! grep -q "${required_license}" README.md; then
+            echo -e "${YELLOW}rewriting${NC}"
+            rewrite_license_section "${required_license}"
+            echo "  → Updated README license section to ${required_license}"
+            : $((FIX_COUNT++))
+            return
+        fi
+
         echo -e "${GREEN}exists${NC}"
         return
     fi
@@ -171,16 +205,35 @@ EOF
     : $((FIX_COUNT++))
 }
 
+function rewrite_license_section() {
+    local required_license="$1"
+    local tmp
+    tmp=$(mktemp)
+
+    awk -v lic="${required_license}" '
+    BEGIN{in_section=0; replaced=0}
+    /^#{1,3} [Ll]icense/ {
+        if(!replaced){
+            print "## License"; print ""; print "This project is licensed under the " lic " License - see the [LICENSE](./LICENSE) file for details."; print "";
+            replaced=1; in_section=1; next
+        }
+    }
+    in_section && /^#/ {in_section=0}
+    !in_section {print}
+    ' README.md > "${tmp}" && mv "${tmp}" README.md
+}
+
 function fix_source_headers() {
     local required_license="$1"
     local owner_name="$2"
     local year="$3"
+    local header_template="$4"
 
     echo "Fixing source file headers..."
 
     # Get all tracked source files (exclude data/config files like JSON, TOML, YAML, XML)
     local files
-    files=$(git ls-files | grep -E '\.(sh|bash|py|js|ts|tsx|jsx|go|rs|c|cpp|h|hpp|java|rb|php|tex)$' | grep -v -E '\.(json|toml|yaml|yml|xml|md|txt)$' || true)
+    files=$(${GIT_CMD} ls-files | grep -E '\.(sh|bash|py|js|ts|tsx|jsx|go|rs|c|cpp|h|hpp|java|rb|php|tex)$' | grep -v -E '\.(json|toml|yaml|yml|xml|md|txt)$' || true)
 
     if [[ -z "${files}" ]]; then
         echo "  No source files found"
@@ -211,7 +264,7 @@ function fix_source_headers() {
         fi
 
         # Fix the file by prepending header
-        inject_header "${file}" "${required_license}" "${owner_name}" "${year}"
+        inject_header "${file}" "${required_license}" "${owner_name}" "${year}" "${header_template}"
         : $((fixed++))
         : $((FIX_COUNT++))
     done <<< "${files}"
@@ -228,6 +281,7 @@ function inject_header() {
     local license="$2"
     local owner="$3"
     local year="$4"
+    local header_template="$5"
 
     local ext="${file##*.}"
     local comment_start
@@ -270,16 +324,28 @@ function inject_header() {
             echo ""
         fi
 
-        # Write header comment
-        if [[ -n "${comment_start:-}" ]]; then
-            echo "${comment_start}"
+        if [[ -n "${header_template}" ]]; then
+            local escaped_license escaped_owner escaped_year
+            escaped_license=$(printf '%s\n' "${license}" | sed -e 's/[\/&]/\\&/g')
+            escaped_owner=$(printf '%s\n' "${owner}" | sed -e 's/[\/&]/\\&/g')
+            escaped_year=$(printf '%s\n' "${year}" | sed -e 's/[\/&]/\\&/g')
+
+            printf '%s\n' "${header_template}" | \
+                sed -e "s/{{LICENSE}}/${escaped_license}/g" \
+                    -e "s/{{OWNER}}/${escaped_owner}/g" \
+                    -e "s/{{YEAR}}/${escaped_year}/g"
+            echo ""
+        else
+            if [[ -n "${comment_start:-}" ]]; then
+                echo "${comment_start}"
+            fi
+            echo "${comment_line} SPDX-License-Identifier: ${license}"
+            echo "${comment_line} Copyright © ${year} ${owner}"
+            if [[ -n "${comment_end:-}" ]]; then
+                echo "${comment_end}"
+            fi
+            echo ""
         fi
-        echo "${comment_line} SPDX-License-Identifier: ${license}"
-        echo "${comment_line} Copyright © ${year} ${owner}"
-        if [[ -n "${comment_end:-}" ]]; then
-            echo "${comment_end}"
-        fi
-        echo ""
 
         # Write rest of file (skip shebang if we already wrote it)
         if [[ "${has_shebang}" == true ]]; then

@@ -29,6 +29,16 @@
 
 ---
 
+### §1.1 Install & Run Anywhere
+
+1. `git clone https://github.com/flyingrobots/totally-legal-bro.git && cd totally-legal-bro`
+2. `./install.sh` (copies to `~/.totally-legal-bro`, ensures exec bits, adds to PATH)
+3. Restart your shell or `export PATH="$HOME/.totally-legal-bro:$PATH"`
+4. In any git repo: `totally-legal-bro init` (creates `.legalbro.json`)
+5. `totally-legal-bro fix && totally-legal-bro check`
+
+---
+
 ## §2. POWERS AND DUTIES OF THE BRO
 
 ### §2.1 Initialization Procedure
@@ -89,12 +99,30 @@ The Bro **SHALL** provide a comprehensive dossier including:
 
 ---
 
+## CLI Flags
+
+- `--version` — print version
+- `--config <path>` — use alternate `.legalbro.json`
+- `--json` — JSON output for `check`/`report`
+- `--verbose` / `--quiet` — adjust verbosity (quiet minimizes output)
+
+Command-specific:
+- `fix --no-headers` — skip header injection
+- `fix --headers-only` — only inject headers
+- `check --manifests <paths>` — comma-separated manifest paths to scan instead of auto-detect
+
 ## §3. DEPENDENCY LICENSE COMPLIANCE
 
 The Subject Repository **SHALL NOT** import any dependency with a license outside the approved allowlist unless the developer wishes to incur:
 - Moral shame
 - Technical debt
 - Or both
+
+### Dependency License Scanning (current state)
+
+- **npm**: placeholder enforcement. Requires `node_modules` to exist. Recommended tooling: `npx license-checker --json --production` (installed on demand via npx) to enumerate licenses.
+- **pip / go / cargo**: scanning is TODO.
+- When scanning is unavailable (missing `node_modules` or tool failure), checks emit WARN (not FAIL) until tooling is added.
 
 ---
 
@@ -106,6 +134,7 @@ The Subject Repository **SHALL** maintain `.legalbro.json` at its root:
 {
   "requiredLicense": "Apache-2.0",
   "ownerName": "Your Name <you@example.com>",
+  "headerTemplate": "/*\\n * SPDX-License-Identifier: {{LICENSE}}\\n * Copyright (c) {{YEAR}} {{OWNER}}\\n */",
   "dependencyPolicy": ["MIT", "Apache-2.0", "BSD-3-Clause"]
 }
 ```
@@ -114,6 +143,7 @@ The Subject Repository **SHALL** maintain `.legalbro.json` at its root:
 |-------|----------|---------|
 | `requiredLicense` | ✅ | SPDX license identifier (e.g., `MIT`, `Apache-2.0`) |
 | `ownerName` | ✅ | Copyright holder name and/or email |
+| `headerTemplate` | ❌ | Optional custom header text; supports `{{LICENSE}}`, `{{OWNER}}`, `{{YEAR}}` placeholders |
 | `dependencyPolicy` | ❌ | Approved dependency licenses (empty = allow all) |
 
 ---

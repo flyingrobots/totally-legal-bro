@@ -5,7 +5,9 @@
 
 # Config parser and validator for .legalbro.json
 
-CONFIG_FILE=".legalbro.json"
+# Allow override for tests via LEGALBRO_CONFIG; default to repo root file
+CONFIG_FILE="${LEGALBRO_CONFIG:-.legalbro.json}"
+: "${GIT_CMD:=git}"
 
 # Check if jq is available
 function require_jq() {
@@ -27,7 +29,7 @@ function validate_config() {
 
     if [[ ! -f "${config_file}" ]]; then
         echo -e "${RED}Error: Config file not found: ${config_file}${NC}" >&2
-        echo "Run 'totally-legal-bro init' to create one" >&2
+        echo "Config file .legalbro.json not found. Run 'totally-legal-bro init' in a git repo (jq required) to create it." >&2
         return 1
     fi
 

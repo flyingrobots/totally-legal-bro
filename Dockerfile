@@ -7,8 +7,17 @@ RUN apt-get update && apt-get install -y \
     git \
     jq \
     curl \
-    bats \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+# Install bats-core from official release with checksum
+ENV BATS_VERSION=1.11.0
+ENV BATS_SHA256=5f50e9c4a2e7a39979f68de7975cdc8e90d518d04279314f0b0ec98c024aaa99
+RUN curl -L "https://github.com/bats-core/bats-core/archive/v${BATS_VERSION}.tar.gz" -o /tmp/bats.tar.gz \
+    && echo "${BATS_SHA256}  /tmp/bats.tar.gz" | sha256sum -c - \
+    && tar -xf /tmp/bats.tar.gz -C /tmp \
+    && /tmp/bats-core-${BATS_VERSION}/install.sh /usr/local \
+    && rm -rf /tmp/bats.tar.gz /tmp/bats-core-${BATS_VERSION}
 
 # Set up working directory
 WORKDIR /app
