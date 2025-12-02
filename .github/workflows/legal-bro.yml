@@ -28,7 +28,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Docker Compose v2
+      - name: Install Docker + Compose v2 binary
         run: |
           sudo apt-get update
           sudo apt-get install -y docker.io
