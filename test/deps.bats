@@ -93,5 +93,5 @@ EOF
   assert_output_contains "pkg-9-level-4@1.0.9 (GPL-3.0)"
 
   # Verify other allowed ones pass (e.g., pkg-1)
-  assert_output_not_contains "pkg-1-level-4 (MIT)"
+  assert_output_not_contains "pkg-1-level-4@1.0.1 (MIT)"
 }
