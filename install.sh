@@ -7,10 +7,11 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEST="${DEST:-${HOME}/.totally-legal-bro}"
+SOURCE_ROOT="${SOURCE_ROOT_OVERRIDE:-${SCRIPT_DIR}}"
 
 # Validate destination is safe
 case "${DEST}" in
-    ""|"/"|"/usr"|"/usr/bin"|"/bin"|"/etc"|*".."*)
+    ""|"/"|"/usr"|"/usr/bin"|"/bin"|"/etc"|*".."*) 
         echo "Refusing to install to unsafe DEST: ${DEST}" >&2
         exit 1
         ;;
@@ -25,7 +26,7 @@ if [[ -e "${DEST}" ]]; then
 fi
 
 # Validate source assets (must be run from repo checkout)
-for path in "${SCRIPT_DIR}/totally-legal-bro" "${SCRIPT_DIR}/lib" "${SCRIPT_DIR}/licenses"; do
+for path in "${SOURCE_ROOT}/totally-legal-bro" "${SOURCE_ROOT}/lib" "${SOURCE_ROOT}/licenses"; do
     if [[ ! -e "${path}" ]]; then
         echo "Missing required file/dir: ${path}. Run from a repo checkout (not via curl|bash)." >&2
         exit 1
@@ -36,7 +37,7 @@ echo "Installing totally-legal-bro to ${DEST}"
 mkdir -p "${DEST}"
 
 # Copy core assets
-cp -R "${SCRIPT_DIR}/totally-legal-bro" "${SCRIPT_DIR}/lib" "${SCRIPT_DIR}/licenses" "${DEST}/"
+cp -R "${SOURCE_ROOT}/totally-legal-bro" "${SOURCE_ROOT}/lib" "${SOURCE_ROOT}/licenses" "${DEST}/"
 
 # Ensure executables
 chmod +x "${DEST}/totally-legal-bro"
