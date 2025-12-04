@@ -28,9 +28,6 @@ teardown() {
     mkdir -p tmp
     create_source_file "tmp/temp.js" "temp code" true # Pass true for no_git_add
 
-    # Git add only the relevant files that should be tracked
-    git add src/main.js src/util.py README.md config.json image.png script.sh >/dev/null 2>&1
-    
     run get_source_files
     
     [ "$status" -eq 0 ]
