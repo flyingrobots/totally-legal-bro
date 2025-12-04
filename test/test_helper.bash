@@ -26,10 +26,13 @@ setup_test_repo() {
 create_source_file() {
     local file="$1"
     local content="${2:-// Sample code}"
+    local no_git_add="${3:-false}" # New optional argument
 
     mkdir -p "$(dirname "${file}")"
     echo "${content}" > "${file}"
-    git add "${file}"
+    if [[ "${no_git_add}" != "true" ]]; then
+        git add "${file}"
+    fi
 }
 
 # Create a config file
