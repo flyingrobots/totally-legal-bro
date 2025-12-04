@@ -264,3 +264,83 @@ EOF
     run grep "TERMS AND CONDITIONS" LICENSE
     [ "$status" -eq 0 ]
 }
+
+@test "fix: regenerates LICENSE with wrong license type (Apache when MIT required)" {
+    create_config "MIT" "Test Owner"
+
+    # Create an Apache-2.0 LICENSE when config requires MIT
+    cat > LICENSE <<'EOF'
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+Copyright 2025 Test Owner
+EOF
+    git add LICENSE
+
+    cat > README.md <<'EOF'
+# Test
+## License
+MIT
+EOF
+    git add README.md
+
+    run_tlb fix
+
+    # Should have regenerated the LICENSE
+    run grep "MIT License" LICENSE
+    [ "$status" -eq 0 ]
+
+    # Should NOT contain Apache text
+    run grep "TERMS AND CONDITIONS" LICENSE
+    [ "$status" -eq 1 ]
+
+    # Should contain MIT license text
+    run grep "Permission is hereby granted" LICENSE
+    [ "$status" -eq 0 ]
+
+    # Now check should pass
+    run_tlb check
+    [ "$status" -eq 0 ]
+}
+
+@test "fix: regenerates LICENSE with wrong license type (MIT when Apache required)" {
+    create_config "Apache-2.0" "Big Corp"
+
+    # Create an MIT LICENSE when config requires Apache-2.0
+    cat > LICENSE <<'EOF'
+MIT License
+
+Copyright (c) 2025 Big Corp
+
+Permission is hereby granted, free of charge...
+EOF
+    git add LICENSE
+
+    cat > README.md <<'EOF'
+# Test
+## License
+Apache-2.0
+EOF
+    git add README.md
+
+    run_tlb fix
+
+    # Should have regenerated the LICENSE
+    run grep "Apache License" LICENSE
+    [ "$status" -eq 0 ]
+
+    # Should contain Apache text
+    run grep "TERMS AND CONDITIONS" LICENSE
+    [ "$status" -eq 0 ]
+
+    # Should NOT contain MIT text
+    run grep "Permission is hereby granted" LICENSE
+    [ "$status" -eq 1 ]
+
+    # Now check should pass
+    run_tlb check
+    [ "$status" -eq 0 ]
+}

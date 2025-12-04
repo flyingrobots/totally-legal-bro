@@ -68,6 +68,18 @@ function fix_license_file() {
     echo -n "Checking LICENSE file... "
 
     if [[ -f "LICENSE" ]]; then
+        # Check if LICENSE contains the correct license type (same logic as check.sh)
+        local license_base
+        license_base=$(echo "${required_license}" | sed 's/-.*//; s/\..*//')
+
+        if ! grep -qi "${license_base}" LICENSE; then
+            echo -e "${YELLOW}regenerating (wrong license type)${NC}"
+            create_license_template "${required_license}" "${owner_name}" "${year}" > LICENSE
+            echo "  → Regenerated LICENSE file with ${required_license} template"
+            : $((FIX_COUNT++))
+            return
+        fi
+
         # Check for placeholder text (same patterns as check.sh)
         local placeholder_patterns=(
             '\[Full.*text.*here\]'
