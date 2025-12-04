@@ -15,16 +15,12 @@ teardown() {
 
 @test "init: preserves backslashes in user input (SC2162)" {
     # Simulate user input:
-    # 1. License: MIT
-    # 2. Owner: "Acme\ Corp" (Using backslash)
-    # 3. Hook: n
-    # 4. CI: n
-    # 5. Deps: (empty line to finish)
-    
-    # Note: We need to be careful with echo and escaping.
-    # We want to send literal: MIT, newline, Acme\ Corp, newline...
-    
-    printf "MIT\nAcme\\ Corp\n\n\nn\n" | totally-legal-bro init
+    # 1. Required License: MIT
+    # 2. Owner Name: Acme\ Corp
+    # 3. Dependency Policy: (empty line to finish)
+    # 4. Git hook setup: n
+    # 5. CI workflow setup: n
+    printf "MIT\nAcme\\\ Corp\n\n\nn\n" | totally-legal-bro init
 
     [ -f .legalbro.json ]
     
