@@ -182,3 +182,26 @@ EOF
     # Should fix: LICENSE, NOTICE, README, and 3 source files = 6 total
     assert_output_contains "6"
 }
+
+@test "fix: correctly replaces placeholders in Apache-2.0 license" {
+    create_config "Apache-2.0" "Big Corp"
+
+    run_tlb fix
+
+    [ -f LICENSE ]
+    
+    # Should NOT contain placeholders
+    run grep "\[yyyy\]" LICENSE
+    [ "$status" -eq 1 ] # grep returns 1 if not found, which is what we want
+
+    run grep "\[name of copyright owner\]" LICENSE
+    [ "$status" -eq 1 ]
+
+    # Should contain actual values
+    run grep "Copyright .* Big Corp" LICENSE
+    [ "$status" -eq 0 ]
+    
+    current_year=$(date +%Y)
+    run grep "Copyright $current_year" LICENSE
+    [ "$status" -eq 0 ]
+}

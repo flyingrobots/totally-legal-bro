@@ -98,8 +98,8 @@ function create_license_template() {
             -e "s/<copyright holders>/${escaped_owner}/g" \
             -e "s/(c) <year>/(c) ${escaped_year}/g" \
             -e "s/Copyright (c) <year>/Copyright © ${escaped_year}/g" \
-            -e "s/\[yyyy\]/${escaped_year}/g" \
-            -e "s/\[name of copyright owner\]/${escaped_owner}/g" \
+            -e "s/[[]yyyy[]]/${escaped_year}/g" \
+            -e "s/[[]name of copyright owner[]]/${escaped_owner}/g" \
             "${template_file}"
     else
         cat <<EOF
