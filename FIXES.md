@@ -22,7 +22,7 @@ This document tracks identified issues and optimization opportunities for `total
     The logic to identify source files (the list of extensions like `.js|.py|.go...` and the `find` command fallback) is duplicated in `lib/check.sh` (`headers_status`) and `lib/fix.sh` (`fix_source_headers`).
     **Task:** Extract this logic into a new function `get_source_files` in a shared library (e.g., create `lib/utils.sh` or add to `lib/config.sh`). Update `check.sh` and `fix.sh` to use this function instead of hardcoded logic.
 
-- [ ] **Fix `install.sh` shellcheck exclusions:**
+- [x] **Fix `install.sh` shellcheck exclusions:**
     The `install.sh` script is currently excluded from some shellcheck scans or has minor issues.
     **Task:** Run `shellcheck install.sh` and fix any warnings (e.g., quoting variables, safe paths). Ensure it adheres to the project's strict mode.
 
