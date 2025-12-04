@@ -14,7 +14,7 @@ setup_test_repo() {
 
     # Create fresh repo
     mkdir -p "${repo_dir}"
-    cd "${repo_dir}"
+    cd "${repo_dir}" || return 1
     git init >/dev/null 2>&1
     git config user.email "test@example.com"
     git config user.name "Test User"
