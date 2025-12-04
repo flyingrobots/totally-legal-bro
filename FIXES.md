@@ -42,6 +42,6 @@ This document tracks identified issues and optimization opportunities for `total
     There are no automated tests for `install.sh`.
     **Task:** Create `test/install.bats` to verify the installer correctly copies files to the destination, handles existing directories, and sets permissions.
 
-- [ ] **Update `docs/SPEC.md`:**
+- [x] **Update `docs/SPEC.md`:**
     Ensure the specification document reflects the recent changes (transitive dependency scanning, portable regex fixes).
     **Task:** Review `docs/SPEC.md` and update the "Dependency Scanning" and "Fix Command" sections to match the current implementation.
