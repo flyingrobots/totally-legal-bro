@@ -68,6 +68,33 @@ function fix_license_file() {
     echo -n "Checking LICENSE file... "
 
     if [[ -f "LICENSE" ]]; then
+        # Check for placeholder text (same patterns as check.sh)
+        local placeholder_patterns=(
+            '\[Full.*text.*here\]'
+            '\[.*license.*text.*\]'
+            'TODO'
+            'PLACEHOLDER'
+            '\[yyyy\]'
+            '\[name of copyright owner\]'
+            '\[fullname\]'
+        )
+
+        local has_placeholder=false
+        for pattern in "${placeholder_patterns[@]}"; do
+            if grep -qiE "${pattern}" LICENSE; then
+                has_placeholder=true
+                break
+            fi
+        done
+
+        if [[ "${has_placeholder}" == true ]]; then
+            echo -e "${YELLOW}regenerating (placeholder detected)${NC}"
+            create_license_template "${required_license}" "${owner_name}" "${year}" > LICENSE
+            echo "  → Regenerated LICENSE file with ${required_license} template"
+            : $((FIX_COUNT++))
+            return
+        fi
+
         echo -e "${GREEN}exists${NC}"
         return
     fi

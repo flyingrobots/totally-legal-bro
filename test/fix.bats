@@ -189,7 +189,7 @@ EOF
     run_tlb fix
 
     [ -f LICENSE ]
-    
+
     # Should NOT contain placeholders
     run grep "\[yyyy\]" LICENSE
     [ "$status" -eq 1 ] # grep returns 1 if not found, which is what we want
@@ -200,8 +200,67 @@ EOF
     # Should contain actual values
     run grep "Copyright .* Big Corp" LICENSE
     [ "$status" -eq 0 ]
-    
+
     current_year=$(date +%Y)
     run grep "Copyright $current_year" LICENSE
+    [ "$status" -eq 0 ]
+}
+
+@test "fix: regenerates existing LICENSE file with placeholder text" {
+    create_config "MIT" "Test Owner"
+
+    # Create a LICENSE with placeholder text (simulating incomplete license)
+    cat > LICENSE <<'EOF'
+MIT License
+
+Copyright [yyyy] [name of copyright owner]
+
+TODO: Add license text here
+EOF
+    git add LICENSE
+
+    # Run fix - should detect placeholders and regenerate
+    run_tlb fix
+
+    # Should NOT contain placeholders anymore
+    run grep "\[yyyy\]" LICENSE
+    [ "$status" -eq 1 ]
+
+    run grep "\[name of copyright owner\]" LICENSE
+    [ "$status" -eq 1 ]
+
+    run grep "TODO" LICENSE
+    [ "$status" -eq 1 ]
+
+    # Should contain actual values
+    current_year=$(date +%Y)
+    run grep "Copyright.*$current_year.*Test Owner" LICENSE
+    [ "$status" -eq 0 ]
+
+    # Should contain real MIT license text
+    run grep "Permission is hereby granted" LICENSE
+    [ "$status" -eq 0 ]
+}
+
+@test "fix: regenerates LICENSE with PLACEHOLDER keyword" {
+    create_config "Apache-2.0" "Acme Inc"
+
+    cat > LICENSE <<'EOF'
+Apache License 2.0
+
+PLACEHOLDER - Replace with full license text
+
+Copyright 2025 Acme Inc
+EOF
+    git add LICENSE
+
+    run_tlb fix
+
+    # Should NOT contain PLACEHOLDER
+    run grep "PLACEHOLDER" LICENSE
+    [ "$status" -eq 1 ]
+
+    # Should contain real Apache license
+    run grep "TERMS AND CONDITIONS" LICENSE
     [ "$status" -eq 0 ]
 }
