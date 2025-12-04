@@ -4,7 +4,7 @@ This document tracks identified issues and optimization opportunities for `total
 
 ## P0: Critical Performance & Safety (Immediate Action Required)
 
-- [ ] **Optimize `deps.sh` scan loop:**
+- [x] **Optimize `deps.sh` scan loop:**
     Refactor `scan_dependencies` in `lib/deps.sh`. currently, it finds all `package.json` files and loops over them, invoking `jq` *twice* per file. For large `node_modules`, this spawns thousands of subprocesses and is extremely slow.
     **Task:** Rewrite the loop to use `find ... -exec jq ...` or `xargs` to process files in batches, or at minimum, run `jq` once per file to extract both `.name` and `.license` simultaneously. Ensure it still correctly handles the `while read` loop for the output.
 
