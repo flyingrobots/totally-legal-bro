@@ -110,13 +110,17 @@ function setup_git_hook() {
 
     # Check if hook already exists
     if [[ -f "${hook_file}" ]]; then
-        # Check if our hook is already in there
+        # Always back up an existing hook
+        cp "${hook_file}" "${hook_file}.bak"
+        echo -e "${YELLOW}Backed up existing pre-commit hook to ${hook_file}.bak${NC}"
+
+        # If our hook is already in there, just return (no further action needed)
         if grep -q "totally-legal-bro check" "${hook_file}"; then
             echo -e "${YELLOW}Git hook already configured${NC}"
             return
         fi
 
-        # Append to existing hook
+        # Otherwise, append to existing hook
         echo -e "${YELLOW}Appending to existing pre-commit hook${NC}"
         cat >> "${hook_file}" <<'EOF'
 
