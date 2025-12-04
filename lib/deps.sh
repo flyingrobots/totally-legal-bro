@@ -63,22 +63,18 @@ function scan_dependencies() {
 
                 # Gather licenses by scanning node_modules package.json files
                 # Traverse full npm tree (no depth cap) to catch transitive deps
-                # Use find -print0 and xargs -0 for safe handling of filenames with spaces
-                # Invoke jq once per package.json to get pkg and license in one go
-                local all_deps_json
-                all_deps_json=$(find node_modules -type f -name package.json -print0 | \
-                                xargs -0 jq -c '{pkg: (.name + "@" + (.version // "")), license: (.license // "UNKNOWN")}')
-
-                while IFS= read -r json_line; do
-                    local pkg license
-                    # Parse pkg and license from the pre-formatted JSON line
-                    pkg=$(echo "${json_line}" | jq -r '.pkg' 2>/dev/null || echo "unknown")
-                    license=$(echo "${json_line}" | jq -r '.license' 2>/dev/null || echo "UNKNOWN")
+                while IFS= read -r -d '' pkgfile; do
+                    local result
+                    # Extract pkg and license in one go, separated by tab
+                    result=$(jq -r '(.name + "@" + (.version // "")) + "\t" + (.license // "UNKNOWN")' "${pkgfile}" 2>/dev/null || printf "unknown\tUNKNOWN")
+                    
+                    local pkg="${result%%$'\t'*}"
+                    local license="${result##*$'\t'}"
 
                     if ! is_license_allowed "${license}"; then
                         violations+=("${pkg} (${license})")
                     fi
-                done <<< "${all_deps_json}"
+                done < <(find node_modules -type f -name package.json -print0)
                 ;;
             *)
                 notes+=("${pm} scanning TODO")
