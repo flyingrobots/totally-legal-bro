@@ -38,7 +38,7 @@ This document tracks identified issues and optimization opportunities for `total
 
 ## P3: Documentation & Polish
 
-- [ ] **Add missing `install.sh` tests:**
+- [x] **Add missing `install.sh` tests:**
     There are no automated tests for `install.sh`.
     **Task:** Create `test/install.bats` to verify the installer correctly copies files to the destination, handles existing directories, and sets permissions.
 
