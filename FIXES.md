@@ -8,7 +8,7 @@ This document tracks identified issues and optimization opportunities for `total
     Refactor `scan_dependencies` in `lib/deps.sh`. currently, it finds all `package.json` files and loops over them, invoking `jq` *twice* per file. For large `node_modules`, this spawns thousands of subprocesses and is extremely slow.
     **Task:** Rewrite the loop to use `find ... -exec jq ...` or `xargs` to process files in batches, or at minimum, run `jq` once per file to extract both `.name` and `.license` simultaneously. Ensure it still correctly handles the `while read` loop for the output.
 
-- [ ] **Fix dangerous `cd` in tests (SC2164):**
+- [x] **Fix dangerous `cd` in tests (SC2164):**
     In `test/test_helper.bash`, the `setup_test_repo` function does `cd "${repo_dir}"` without error handling. If this fails, subsequent commands (like `rm -rf` in teardown) could run in the wrong directory.
     **Task:** Change `cd "${repo_dir}"` to `cd "${repo_dir}" || exit 1` (or `return 1`). Apply this fix to any other `cd` commands in the test suite.
 
