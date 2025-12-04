@@ -8,6 +8,8 @@
 declare -i FIX_COUNT=0
 : "${GIT_CMD:=git}"
 
+source "${LIB_DIR}/utils.sh"
+
 function cmd_fix() {
     echo -e "${BLUE}🔧 Auto-fixing legal compliance issues...${NC}"
     echo ""
@@ -208,11 +210,7 @@ function fix_source_headers() {
     echo "Fixing source file headers..."
 
     local files
-    files=$(${GIT_CMD} ls-files | grep -E '\\.(sh|bash|py|js|ts|tsx|jsx|go|rs|c|cpp|h|hpp|java|rb|php|tex)$' | grep -v -E '\\.(json|toml|yaml|yml|xml|md|txt)$' || true)
-
-    if [[ -z "${files}" ]]; then
-        files=$(find . -type f \( -name "*.sh" -o -name "*.bash" -o -name "*.py" -o -name "*.js" -o -name "*.ts" -o -name "*.tsx" -o -name "*.jsx" -o -name "*.go" -o -name "*.rs" -o -name "*.c" -o -name "*.cpp" -o -name "*.h" -o -name "*.hpp" -o -name "*.java" -o -name "*.rb" -o -name "*.php" -o -name "*.tex" \) | grep -v -E '\\.(json|toml|yaml|yml|xml|md|txt)$' || true)
-    fi
+    files=$(get_source_files)
 
     if [[ -z "${files}" ]]; then
         echo "  No source files found"
