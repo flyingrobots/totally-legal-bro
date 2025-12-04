@@ -8,6 +8,13 @@
 declare -i FIX_COUNT=0
 : "${GIT_CMD:=git}"
 
+# Guard against missing or invalid LIB_DIR
+: "${LIB_DIR:?LIB_DIR must be set to the directory containing utils.sh}"
+if [[ ! -f "${LIB_DIR}/utils.sh" ]]; then
+    echo "ERROR: ${LIB_DIR}/utils.sh not found" >&2
+    exit 1
+fi
+
 source "${LIB_DIR}/utils.sh"
 
 function cmd_fix() {
@@ -69,10 +76,12 @@ function fix_license_file() {
 
     if [[ -f "LICENSE" ]]; then
         # Check if LICENSE contains the correct license type (same logic as check.sh)
-        local license_base
+        local license_base escaped_license_base
         license_base=$(echo "${required_license}" | sed 's/-.*//; s/\..*//')
+        # Escape regex metacharacters in license_base for safe grep
+        escaped_license_base=$(printf '%s\n' "${license_base}" | sed 's/[.[\*^$()+?{|]/\\&/g')
 
-        if ! grep -qi "${license_base}" LICENSE; then
+        if ! grep -qiE "\\b${escaped_license_base}\\b" LICENSE; then
             echo -e "${YELLOW}regenerating (wrong license type)${NC}"
             create_license_template "${required_license}" "${owner_name}" "${year}" > LICENSE
             echo "  → Regenerated LICENSE file with ${required_license} template"
@@ -139,8 +148,8 @@ function create_license_template() {
             -e "s/<copyright holders>/${escaped_owner}/g" \
             -e "s/(c) <year>/(c) ${escaped_year}/g" \
             -e "s/Copyright (c) <year>/Copyright © ${escaped_year}/g" \
-            -e "s/[[]yyyy[]]/${escaped_year}/g" \
-            -e "s/[[]name of copyright owner[]]/${escaped_owner}/g" \
+            -e "s/\\[yyyy\\]/${escaped_year}/g" \
+            -e "s/\\[name of copyright owner\\]/${escaped_owner}/g" \
             "${template_file}"
     else
         cat <<EOF

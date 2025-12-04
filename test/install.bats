@@ -93,11 +93,26 @@ teardown() {
     # First install
     "${INSTALL_SH}" > /dev/null
 
+    # Create a marker file to detect if install proceeded
+    echo "ORIGINAL" > "${MOCK_HOME}/.totally-legal-bro/marker.txt"
+    marker_before=$(stat -f "%m" "${MOCK_HOME}/.totally-legal-bro/marker.txt" 2>/dev/null || stat -c "%Y" "${MOCK_HOME}/.totally-legal-bro/marker.txt" 2>/dev/null)
+
     # Run again and answer 'n'
     run bash -c "echo 'n' | ${INSTALL_SH}"
 
-    # Note: read -p might not print prompt when not TTY, so we check for the abort message
+    # Assert non-zero exit status (abort path)
+    [ "$status" -ne 0 ]
+
+    # Assert abort message
     assert_output_contains "Aborting install."
+
+    # Assert marker file was not modified (timestamp unchanged)
+    marker_after=$(stat -f "%m" "${MOCK_HOME}/.totally-legal-bro/marker.txt" 2>/dev/null || stat -c "%Y" "${MOCK_HOME}/.totally-legal-bro/marker.txt" 2>/dev/null)
+    [ "${marker_before}" = "${marker_after}" ]
+
+    # Assert marker content unchanged
+    run cat "${MOCK_HOME}/.totally-legal-bro/marker.txt"
+    [ "$output" = "ORIGINAL" ]
 }
 
 @test "install.sh: allows overwriting with 'y'" {

@@ -76,7 +76,9 @@ run_tlb() {
     run totally-legal-bro "$@"
 }
 
-# Create a nested node_modules structure. Every 3rd package is assigned a GPL-3.0 license.
+# Create a nested node_modules structure.
+# Every 3rd top-level dependency chain is GPL-3.0 (license chosen per top-level i, not per package).
+# All packages within a given top-level dependency chain share the same license.
 create_nested_npm_deps() {
     local num_deps="${1:-5}" # Number of dependencies to create
     local num_levels="${2:-3}" # Depth of nesting
@@ -86,7 +88,7 @@ create_nested_npm_deps() {
     for ((i=0; i<num_deps; i++)); do
         local current_dir="node_modules"
         local license="MIT"
-        # Make every 3rd dependency use GPL-3.0 to test violations
+        # Every 3rd top-level dependency chain uses GPL-3.0 (i % 3 == 0)
         if (( i % 3 == 0 )); then
             license="GPL-3.0"
         fi

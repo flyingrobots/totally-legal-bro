@@ -70,7 +70,6 @@ EOF
 
 @test "deps: handles large nested npm dependency trees correctly" {
   # Policy only allows MIT, so GPL-3.0 should fail
-  create_config "MIT" "Tester"
   cat > .legalbro.json <<EOF
 {
   "requiredLicense": "MIT",
@@ -78,6 +77,7 @@ EOF
   "dependencyPolicy": ["MIT"]
 }
 EOF
+  git add .legalbro.json
 
   create_nested_npm_deps 10 5 # 10 top-level deps, 5 levels deep
   

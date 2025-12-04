@@ -187,6 +187,7 @@ EOF
     create_config "Apache-2.0" "Big Corp"
 
     run_tlb fix
+    [ "$status" -eq 0 ]
 
     [ -f LICENSE ]
 
@@ -221,6 +222,7 @@ EOF
 
     # Run fix - should detect placeholders and regenerate
     run_tlb fix
+    [ "$status" -eq 0 ]
 
     # Should NOT contain placeholders anymore
     run grep "\[yyyy\]" LICENSE
@@ -255,6 +257,7 @@ EOF
     git add LICENSE
 
     run_tlb fix
+    [ "$status" -eq 0 ]
 
     # Should NOT contain PLACEHOLDER
     run grep "PLACEHOLDER" LICENSE
@@ -262,6 +265,10 @@ EOF
 
     # Should contain real Apache license
     run grep "TERMS AND CONDITIONS" LICENSE
+    [ "$status" -eq 0 ]
+
+    # Should contain the configured owner
+    run grep "Acme Inc" LICENSE
     [ "$status" -eq 0 ]
 }
 
@@ -288,6 +295,7 @@ EOF
     git add README.md
 
     run_tlb fix
+    [ "$status" -eq 0 ]
 
     # Should have regenerated the LICENSE
     run grep "MIT License" LICENSE
@@ -299,6 +307,10 @@ EOF
 
     # Should contain MIT license text
     run grep "Permission is hereby granted" LICENSE
+    [ "$status" -eq 0 ]
+
+    # Should contain the configured owner
+    run grep "Test Owner" LICENSE
     [ "$status" -eq 0 ]
 
     # Now check should pass
@@ -327,6 +339,7 @@ EOF
     git add README.md
 
     run_tlb fix
+    [ "$status" -eq 0 ]
 
     # Should have regenerated the LICENSE
     run grep "Apache License" LICENSE
@@ -339,6 +352,10 @@ EOF
     # Should NOT contain MIT text
     run grep "Permission is hereby granted" LICENSE
     [ "$status" -eq 1 ]
+
+    # Should contain the configured owner
+    run grep "Big Corp" LICENSE
+    [ "$status" -eq 0 ]
 
     # Now check should pass
     run_tlb check
