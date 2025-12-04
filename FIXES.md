@@ -18,7 +18,7 @@ This document tracks identified issues and optimization opportunities for `total
 
 ## P1: Maintainability & Logic Refactoring (High Priority)
 
-- [ ] **DRY Source File Detection:**
+- [x] **DRY Source File Detection:**
     The logic to identify source files (the list of extensions like `.js|.py|.go...` and the `find` command fallback) is duplicated in `lib/check.sh` (`headers_status`) and `lib/fix.sh` (`fix_source_headers`).
     **Task:** Extract this logic into a new function `get_source_files` in a shared library (e.g., create `lib/utils.sh` or add to `lib/config.sh`). Update `check.sh` and `fix.sh` to use this function instead of hardcoded logic.
 
