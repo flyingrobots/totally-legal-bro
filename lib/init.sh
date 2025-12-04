@@ -29,16 +29,16 @@ function cmd_init() {
     local setup_hooks="y"
     local setup_ci="y"
 
-    read -p "Required License (SPDX ID, e.g., MIT, Apache-2.0): " required_license
+    read -r -p "Required License (SPDX ID, e.g., MIT, Apache-2.0): " required_license
     while [[ -z "${required_license}" ]]; do
         echo -e "${RED}License is required${NC}"
-        read -p "Required License (SPDX ID, e.g., MIT, Apache-2.0): " required_license
+        read -r -p "Required License (SPDX ID, e.g., MIT, Apache-2.0): " required_license
     done
 
-    read -p "Owner Name (e.g., Your Name or Company): " owner_name
+    read -r -p "Owner Name (e.g., Your Name or Company): " owner_name
     while [[ -z "${owner_name}" ]]; do
         echo -e "${RED}Owner name is required${NC}"
-        read -p "Owner Name (e.g., Your Name or Company): " owner_name
+        read -r -p "Owner Name (e.g., Your Name or Company): " owner_name
     done
 
     # Optional: dependency policy
@@ -49,7 +49,7 @@ function cmd_init() {
 
     local dep_licenses=()
     while true; do
-        read -p "License (or blank to finish): " license
+        read -r -p "License (or blank to finish): " license
         if [[ -z "${license}" ]]; then
             break
         fi
