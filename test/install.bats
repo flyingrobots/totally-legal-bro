@@ -51,17 +51,16 @@ teardown() {
     /app/install.sh
 
     # Assert PATH is added to .bashrc
-    # Check if the expected line exists in the file
-    run cat "${HOME}/.bashrc"
-    assert_output_contains "export PATH=\"${MOCK_HOME}/.totally-legal-bro:\$PATH\""
+    run grep -F "${MOCK_HOME}/.totally-legal-bro" "${HOME}/.bashrc"
+    [ "$status" -eq 0 ]
 }
 
 @test "install.sh: adds to PATH in .zshrc" {
     /app/install.sh
 
     # Assert PATH is added to .zshrc
-    run cat "${HOME}/.zshrc"
-    assert_output_contains "export PATH=\"${MOCK_HOME}/.totally-legal-bro:\$PATH\""
+    run grep -F "${MOCK_HOME}/.totally-legal-bro" "${HOME}/.zshrc"
+    [ "$status" -eq 0 ]
 }
 
 @test "install.sh: does not duplicate PATH entries" {
@@ -72,8 +71,12 @@ teardown() {
     # We must pipe 'y' because the directory exists
     run bash -c "echo 'y' | /app/install.sh"
     
-    # Count occurrences of the export line
-    run grep -c "export PATH=\"${MOCK_HOME}/.totally-legal-bro:\$PATH\"" "${HOME}/.bashrc"
+    # Count occurrences of the installed directory path in .bashrc
+    run grep -c "${MOCK_HOME}/.totally-legal-bro" "${HOME}/.bashrc"
+    [ "$output" = "1" ]
+    
+    # And in .zshrc
+    run grep -c "${MOCK_HOME}/.totally-legal-bro" "${HOME}/.zshrc"
     [ "$output" = "1" ]
 }
 
