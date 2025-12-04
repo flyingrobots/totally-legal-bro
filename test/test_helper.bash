@@ -22,11 +22,12 @@ setup_test_repo() {
     echo "${repo_dir}"
 }
 
-# Create a sample source file
+# Create a sample source file.
+# Usage: create_source_file <path> [content] [no_git_add=true|false]
 create_source_file() {
     local file="$1"
     local content="${2:-// Sample code}"
-    local no_git_add="${3:-false}" # New optional argument
+    local no_git_add="${3:-false}" # If "true", do not git add the file
 
     mkdir -p "$(dirname "${file}")"
     echo "${content}" > "${file}"
@@ -75,7 +76,7 @@ run_tlb() {
     run totally-legal-bro "$@"
 }
 
-# Create a nested node_modules structure
+# Create a nested node_modules structure. Every 3rd package is assigned a GPL-3.0 license.
 create_nested_npm_deps() {
     local num_deps="${1:-5}" # Number of dependencies to create
     local num_levels="${2:-3}" # Depth of nesting
