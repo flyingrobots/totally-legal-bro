@@ -87,10 +87,10 @@ EOF
   [ "$status" -ne 0 ]
   
   # Verify specific violations (every 3rd dep is GPL-3.0)
-  assert_output_contains "pkg-0-level-4 (GPL-3.0)"
-  assert_output_contains "pkg-3-level-4 (GPL-3.0)"
-  assert_output_contains "pkg-6-level-4 (GPL-3.0)"
-  assert_output_contains "pkg-9-level-4 (GPL-3.0)"
+  assert_output_contains "pkg-0-level-4@1.0.0 (GPL-3.0)"
+  assert_output_contains "pkg-3-level-4@1.0.3 (GPL-3.0)"
+  assert_output_contains "pkg-6-level-4@1.0.6 (GPL-3.0)"
+  assert_output_contains "pkg-9-level-4@1.0.9 (GPL-3.0)"
 
   # Verify other allowed ones pass (e.g., pkg-1)
   assert_output_not_contains "pkg-1-level-4 (MIT)"
