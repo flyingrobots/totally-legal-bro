@@ -67,3 +67,31 @@ EOF
   [ "$status" -ne 0 ]
   assert_output_contains "node_modules missing"
 }
+
+@test "deps: handles large nested npm dependency trees correctly" {
+  # Policy only allows MIT, so GPL-3.0 should fail
+  create_config "MIT" "Tester"
+  cat > .legalbro.json <<EOF
+{
+  "requiredLicense": "MIT",
+  "ownerName": "Tester",
+  "dependencyPolicy": ["MIT"]
+}
+EOF
+
+  create_nested_npm_deps 10 5 # 10 top-level deps, 5 levels deep
+  
+  run totally-legal-bro check --manifests package.json
+  
+  # Expect a failure status because some deps are GPL-3.0
+  [ "$status" -ne 0 ]
+  
+  # Verify specific violations (every 3rd dep is GPL-3.0)
+  assert_output_contains "pkg-0-level-4 (GPL-3.0)"
+  assert_output_contains "pkg-3-level-4 (GPL-3.0)"
+  assert_output_contains "pkg-6-level-4 (GPL-3.0)"
+  assert_output_contains "pkg-9-level-4 (GPL-3.0)"
+
+  # Verify other allowed ones pass (e.g., pkg-1)
+  assert_output_not_contains "pkg-1-level-4 (MIT)"
+}

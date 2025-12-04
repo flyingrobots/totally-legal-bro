@@ -71,3 +71,35 @@ assert_output_not_contains() {
 run_tlb() {
     run totally-legal-bro "$@"
 }
+
+# Create a nested node_modules structure
+create_nested_npm_deps() {
+    local num_deps="${1:-5}" # Number of dependencies to create
+    local num_levels="${2:-3}" # Depth of nesting
+
+    mkdir -p node_modules
+
+    for ((i=0; i<num_deps; i++)); do
+        local current_dir="node_modules"
+        local license="MIT"
+        # Make every 3rd dependency use GPL-3.0 to test violations
+        if (( i % 3 == 0 )); then
+            license="GPL-3.0"
+        fi
+
+        for ((j=0; j<num_levels; j++)); do
+            local pkg_name="pkg-$i-level-$j"
+            local pkg_path="${current_dir}/${pkg_name}"
+            mkdir -p "${pkg_path}"
+            cat > "${pkg_path}/package.json" <<EOF
+{
+  "name": "${pkg_name}",
+  "version": "1.0.${i}",
+  "license": "${license}"
+}
+EOF
+            current_dir="${pkg_path}/node_modules"
+            mkdir -p "${current_dir}" # Create nested node_modules for next level
+        done
+    done
+}
