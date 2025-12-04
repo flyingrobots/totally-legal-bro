@@ -27,7 +27,6 @@ function get_source_files() {
                        -name "*.c" -o -name "*.cpp" -o -name "*.h" -o \
                        -name "*.hpp" -o -name "*.java" -o -name "*.rb" -o \
                        -name "*.php" -o -name "*.tex" \) \
-                    -not -regex ".*${EXCLUDED_FILE_TYPES}" \
                     || true)
     fi
 

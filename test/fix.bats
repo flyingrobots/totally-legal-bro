@@ -344,3 +344,50 @@ EOF
     run_tlb check
     [ "$status" -eq 0 ]
 }
+
+@test "fix: fixes source headers missing copyright symbol" {
+    create_config "MIT" "Test Owner"
+
+    # Create LICENSE and README so they pass
+    cat > LICENSE <<'EOF'
+MIT License
+
+Copyright (c) 2025 Test Owner
+
+Permission is hereby granted...
+EOF
+    git add LICENSE
+
+    cat > README.md <<'EOF'
+# Test
+## License
+MIT
+EOF
+    git add README.md
+
+    # Create source file with header but missing © or (c) symbol
+    cat > script.sh <<'EOF'
+#!/bin/bash
+# SPDX-License-Identifier: MIT
+# Copyright 2025 Test Owner
+
+echo "test"
+EOF
+    git add script.sh
+
+    # Check should fail because copyright missing symbol
+    run_tlb check
+    [ "$status" -eq 1 ]
+    assert_output_contains "missing proper headers"
+
+    # Fix should detect and fix it
+    run_tlb fix
+
+    # Now check should pass
+    run_tlb check
+    [ "$status" -eq 0 ]
+
+    # File should now have proper copyright with symbol
+    run head -10 script.sh
+    assert_output_contains "Copyright © 2025 Test Owner"
+}

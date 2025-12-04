@@ -118,3 +118,39 @@ teardown() {
     # Ensure the merged hook remains executable
     [ -x .git/hooks/pre-commit ]
 }
+
+@test "init: is idempotent with existing hook marker" {
+    # Create a git repo
+    git init >/dev/null 2>&1
+
+    # Create a pre-commit hook that already contains the totally-legal-bro check line
+    mkdir -p .git/hooks
+    cat > .git/hooks/pre-commit <<'EOF'
+#!/bin/bash
+echo "Existing hook logic"
+totally-legal-bro check
+echo "More existing logic"
+EOF
+    chmod +x .git/hooks/pre-commit
+
+    # Run init twice with the same answers
+    echo -e "MIT\nTest User\n\ny\nn" | totally-legal-bro init >/dev/null 2>&1
+    echo -e "MIT\nTest User\n\ny\nn" | totally-legal-bro init >/dev/null 2>&1
+
+    # Assert that NO backup file was created (because marker already existed)
+    backup_count=$(find .git/hooks -name "pre-commit.bak*" 2>/dev/null | wc -l)
+    [ "${backup_count}" -eq 0 ]
+
+    # Assert the pre-commit hook contains exactly one totally-legal-bro check line
+    check_count=$(grep -c "totally-legal-bro check" .git/hooks/pre-commit || echo 0)
+    [ "${check_count}" -eq 1 ]
+
+    # Assert the merged hook remains executable
+    [ -x .git/hooks/pre-commit ]
+
+    # Assert original content is preserved
+    run grep "Existing hook logic" .git/hooks/pre-commit
+    [ "$status" -eq 0 ]
+    run grep "More existing logic" .git/hooks/pre-commit
+    [ "$status" -eq 0 ]
+}

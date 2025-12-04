@@ -186,9 +186,8 @@ function cmd_check() {
             status=$(echo "${s}" | jq -r '.status')
             if [[ "${status}" == "fail" ]]; then
                 : $((CHECK_FAILURES++))
-            elif [[ "${status}" == "warn" ]]; then
-                : $((CHECK_FAILURES++))
             fi
+            # Note: warnings are not counted as failures
         done
     else
         render_status "LICENSE" "${lic_json}"
@@ -263,13 +262,13 @@ function render_deps_status() {
         : $((CHECK_FAILURES++))
     elif [[ "${status}" == "warn" ]]; then
         color="${YELLOW}WARN${NC}"
-        : $((CHECK_FAILURES++))
+        # Note: warnings are not counted as failures
     elif [[ "${status}" == "skip" ]]; then
         color="${YELLOW}SKIP${NC}"
     fi
 
     echo "Dependencies: ${color}"
-    echo "${json}" | jq -r '.notes[]? | "  • " + .' 
+    echo "${json}" | jq -r '.notes[]? | "  • " + .'
     if [[ "${status}" == "fail" ]]; then
         echo "  Violations:"
         echo "${json}" | jq -r '.violations[] | "    - " + .'

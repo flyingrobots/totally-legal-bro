@@ -30,13 +30,13 @@ function cmd_init() {
     local setup_ci="y"
 
     read -r -p "Required License (SPDX ID, e.g., MIT, Apache-2.0): " required_license
-    while [[ -z "${required_license}" ]]; do
+    while [[ -z "${required_license//[[:space:]]/}" ]]; do
         echo -e "${RED}License is required${NC}"
         read -r -p "Required License (SPDX ID, e.g., MIT, Apache-2.0): " required_license
     done
 
     read -r -p "Owner Name (e.g., Your Name or Company): " owner_name
-    while [[ -z "${owner_name}" ]]; do
+    while [[ -z "${owner_name//[[:space:]]/}" ]]; do
         echo -e "${RED}Owner name is required${NC}"
         read -r -p "Owner Name (e.g., Your Name or Company): " owner_name
     done
@@ -50,7 +50,7 @@ function cmd_init() {
     local dep_licenses=()
     while true; do
         read -r -p "License (or blank to finish): " license
-        if [[ -z "${license}" ]]; then
+        if [[ -z "${license//[[:space:]]/}" ]]; then
             break
         fi
         dep_licenses+=("${license}")

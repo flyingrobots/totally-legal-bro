@@ -269,7 +269,8 @@ function fix_source_headers() {
             has_spdx=true
         fi
 
-        if echo "${header}" | grep -E -q "Copyright.*${owner_name}"; then
+        # Check for copyright with symbol (same pattern as check.sh)
+        if echo "${header}" | grep -E -q "Copyright.*(©|\(c\)).*${owner_name}"; then
             has_copyright=true
         fi
 
@@ -317,6 +318,19 @@ function inject_header() {
         has_shebang=true
     fi
 
+    # Create a cleaned version of the file without existing SPDX/Copyright header lines
+    local cleaned_file
+    cleaned_file=$(mktemp)
+
+    if [[ "${has_shebang}" == true ]]; then
+        # Keep shebang, skip old header lines, keep rest
+        head -n 1 "${file}" > "${cleaned_file}"
+        tail -n +2 "${file}" | sed -E '/^[#%\/\*[:space:]]*(SPDX-License-Identifier|Copyright)/d; /^[[:space:]]*\*\/[[:space:]]*$/d; /^[[:space:]]*\/\*[[:space:]]*$/d' >> "${cleaned_file}"
+    else
+        # No shebang, just remove header lines
+        sed -E '/^[#%\/\*[:space:]]*(SPDX-License-Identifier|Copyright)/d; /^[[:space:]]*\*\/[[:space:]]*$/d; /^[[:space:]]*\/\*[[:space:]]*$/d' "${file}" > "${cleaned_file}"
+    fi
+
     {
         if [[ "${has_shebang}" == true ]]; then
             head -n 1 "${file}"; echo ""
@@ -342,12 +356,13 @@ function inject_header() {
         fi
 
         if [[ "${has_shebang}" == true ]]; then
-            tail -n +2 "${file}"
+            tail -n +2 "${cleaned_file}"
         else
-            cat "${file}"
+            cat "${cleaned_file}"
         fi
     } > "${tmp_file}"
 
+    rm -f "${cleaned_file}"
     mv "${tmp_file}" "${file}"
     echo "  → Fixed ${file}"
 }

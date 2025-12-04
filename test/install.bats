@@ -7,26 +7,36 @@ setup() {
     # Create a mock HOME directory for testing install.sh
     MOCK_HOME="${BATS_TEST_TMPDIR}/mock_home"
     mkdir -p "${MOCK_HOME}"
+
+    # Save original HOME
+    ORIGINAL_HOME="${HOME}"
     export HOME="${MOCK_HOME}"
 
     # Create dummy .bashrc and .zshrc in mock HOME
     touch "${HOME}/.bashrc"
     touch "${HOME}/.zshrc"
 
-    # Set SOURCE_ROOT_OVERRIDE for install.sh to Docker's /app
-    export SOURCE_ROOT_OVERRIDE="/app"
+    # Derive the repo root from BATS_TEST_DIRNAME (test/ directory, so go up one level)
+    export SOURCE_ROOT_OVERRIDE="${BATS_TEST_DIRNAME}/.."
+    export INSTALL_SH="${SOURCE_ROOT_OVERRIDE}/install.sh"
 }
 
 teardown() {
     cd /
     [[ -n "${REPO_DIR:-}" ]] && rm -rf "${REPO_DIR}"
-    rm -rf "${MOCK_HOME}"
-    unset HOME
+    [[ -n "${MOCK_HOME:-}" ]] && rm -rf "${MOCK_HOME}"
+
+    # Restore original HOME
+    if [[ -n "${ORIGINAL_HOME:-}" ]]; then
+        export HOME="${ORIGINAL_HOME}"
+    fi
+
+    unset MOCK_HOME REPO_DIR ORIGINAL_HOME SOURCE_ROOT_OVERRIDE INSTALL_SH
 }
 
 @test "install.sh: copies files to destination" {
     # Run install.sh from within the test repo context
-    /app/install.sh
+    "${INSTALL_SH}"
 
     # Assert destination directory exists
     [ -d "${MOCK_HOME}/.totally-legal-bro" ]
@@ -38,7 +48,7 @@ teardown() {
 }
 
 @test "install.sh: makes binaries executable" {
-    /app/install.sh
+    "${INSTALL_SH}"
 
     # Assert main executable is executable
     [ -x "${MOCK_HOME}/.totally-legal-bro/totally-legal-bro" ]
@@ -49,7 +59,7 @@ teardown() {
 }
 
 @test "install.sh: adds to PATH in .bashrc" {
-    /app/install.sh
+    "${INSTALL_SH}"
 
     # Assert PATH is added to .bashrc (format-agnostic)
     run grep -F "${MOCK_HOME}/.totally-legal-bro" "${HOME}/.bashrc"
@@ -57,7 +67,7 @@ teardown() {
 }
 
 @test "install.sh: adds to PATH in .zshrc" {
-    /app/install.sh
+    "${INSTALL_SH}"
 
     # Assert PATH is added to .zshrc (format-agnostic)
     run grep -F "${MOCK_HOME}/.totally-legal-bro" "${HOME}/.zshrc"
@@ -66,11 +76,11 @@ teardown() {
 
 @test "install.sh: does not duplicate PATH entries" {
     # First install
-    /app/install.sh > /dev/null
+    "${INSTALL_SH}" > /dev/null
 
     # Run again, it should detect and not add again
     # We must pipe 'y' because the directory exists
-    run bash -c "echo 'y' | /app/install.sh"
+    run bash -c "echo 'y' | ${INSTALL_SH}"
     [ "$status" -eq 0 ]
     
     # Count occurrences of the installed directory path
@@ -81,24 +91,24 @@ teardown() {
 
 @test "install.sh: handles overwrite confirmation" {
     # First install
-    /app/install.sh > /dev/null
+    "${INSTALL_SH}" > /dev/null
 
     # Run again and answer 'n'
-    run bash -c "echo 'n' | /app/install.sh"
-    
+    run bash -c "echo 'n' | ${INSTALL_SH}"
+
     # Note: read -p might not print prompt when not TTY, so we check for the abort message
     assert_output_contains "Aborting install."
 }
 
 @test "install.sh: allows overwriting with 'y'" {
     # First install
-    /app/install.sh > /dev/null
+    "${INSTALL_SH}" > /dev/null
 
     # Create a unique file in the installation dir
     echo "OLD CONTENT" > "${MOCK_HOME}/.totally-legal-bro/test_file.txt"
 
     # Run again and answer 'y'
-    run bash -c "echo 'y' | /app/install.sh"
+    run bash -c "echo 'y' | ${INSTALL_SH}"
 
     # Check that it proceeded (installed files)
     assert_output_contains "Installing totally-legal-bro"
