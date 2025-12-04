@@ -32,7 +32,7 @@ This document tracks identified issues and optimization opportunities for `total
     In `lib/init.sh`, `setup_git_hook` appends to `.git/hooks/pre-commit` without creating a backup.
     **Task:** Modify `setup_git_hook` to back up an existing `pre-commit` hook (e.g., to `pre-commit.bak`) before appending or modifying it, and print a message informing the user.
 
-- [ ] **Standardize Shebangs:**
+- [x] **Standardize Shebangs:**
     Some scripts use `#!/usr/bin/env bash` and others might be inconsistent.
     **Task:** Verify all `.sh` and `.bats` files use the portable `#!/usr/bin/env bash` shebang.
 
