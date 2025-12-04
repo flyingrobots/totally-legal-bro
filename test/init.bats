@@ -87,3 +87,31 @@ teardown() {
     run jq -r '.dependencyPolicy[0]' .legalbro.json
     [ "$output" = "MIT" ]
 }
+
+@test "init: backs up existing pre-commit hook (P2)" {
+    # Create a git repo
+    git init >/dev/null 2>&1
+
+    # Create a dummy pre-commit hook
+    mkdir -p .git/hooks
+    echo "#!/bin/bash" > .git/hooks/pre-commit
+    echo "echo 'Original hook content'" >> .git/hooks/pre-commit
+    chmod +x .git/hooks/pre-commit
+
+    # Run init, say yes to hook setup
+    # License, Owner, Dep Policy blank, Git hook yes, CI no
+    echo -e "MIT\nTest User\n\ny\nn" | totally-legal-bro init >/dev/null 2>&1
+    
+    # Assert backup file exists
+    [ -f .git/hooks/pre-commit.bak ]
+
+    # Assert backup file contains original content
+    run grep "Original hook content" .git/hooks/pre-commit.bak
+    [ "$status" -eq 0 ]
+
+    # Assert new pre-commit hook contains both original and new content
+    run grep "Original hook content" .git/hooks/pre-commit
+    [ "$status" -eq 0 ]
+    run grep "totally-legal-bro check" .git/hooks/pre-commit
+    [ "$status" -eq 0 ]
+}
