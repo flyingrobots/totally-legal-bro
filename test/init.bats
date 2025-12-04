@@ -87,3 +87,70 @@ teardown() {
     run jq -r '.dependencyPolicy[0]' .legalbro.json
     [ "$output" = "MIT" ]
 }
+
+@test "init: backs up existing pre-commit hook (P2)" {
+    # Create a git repo
+    git init >/dev/null 2>&1
+
+    # Create a dummy pre-commit hook
+    mkdir -p .git/hooks
+    echo "#!/bin/bash" > .git/hooks/pre-commit
+    echo "echo 'Original hook content'" >> .git/hooks/pre-commit
+    chmod +x .git/hooks/pre-commit
+
+    # Run init, say yes to hook setup
+    # License, Owner, Dep Policy blank, Git hook yes, CI no
+    echo -e "MIT\nTest User\n\ny\nn" | totally-legal-bro init >/dev/null 2>&1
+    
+    # Assert backup file exists
+    [ -f .git/hooks/pre-commit.bak ]
+
+    # Assert backup file contains original content
+    run grep "Original hook content" .git/hooks/pre-commit.bak
+    [ "$status" -eq 0 ]
+
+    # Assert new pre-commit hook contains both original and new content
+    run grep "Original hook content" .git/hooks/pre-commit
+    [ "$status" -eq 0 ]
+    run grep "totally-legal-bro check" .git/hooks/pre-commit
+    [ "$status" -eq 0 ]
+
+    # Ensure the merged hook remains executable
+    [ -x .git/hooks/pre-commit ]
+}
+
+@test "init: is idempotent with existing hook marker" {
+    # Create a git repo
+    git init >/dev/null 2>&1
+
+    # Create a pre-commit hook that already contains the totally-legal-bro check line
+    mkdir -p .git/hooks
+    cat > .git/hooks/pre-commit <<'EOF'
+#!/bin/bash
+echo "Existing hook logic"
+totally-legal-bro check
+echo "More existing logic"
+EOF
+    chmod +x .git/hooks/pre-commit
+
+    # Run init twice with the same answers
+    echo -e "MIT\nTest User\n\ny\nn" | totally-legal-bro init >/dev/null 2>&1
+    echo -e "MIT\nTest User\n\ny\nn" | totally-legal-bro init >/dev/null 2>&1
+
+    # Assert that NO backup file was created (because marker already existed)
+    backup_count=$(find .git/hooks -name "pre-commit.bak*" 2>/dev/null | wc -l)
+    [ "${backup_count}" -eq 0 ]
+
+    # Assert the pre-commit hook contains exactly one totally-legal-bro check line
+    check_count=$(grep -c "totally-legal-bro check" .git/hooks/pre-commit || echo 0)
+    [ "${check_count}" -eq 1 ]
+
+    # Assert the merged hook remains executable
+    [ -x .git/hooks/pre-commit ]
+
+    # Assert original content is preserved
+    run grep "Existing hook logic" .git/hooks/pre-commit
+    [ "$status" -eq 0 ]
+    run grep "More existing logic" .git/hooks/pre-commit
+    [ "$status" -eq 0 ]
+}

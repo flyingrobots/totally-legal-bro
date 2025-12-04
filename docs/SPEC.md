@@ -53,6 +53,7 @@ This file defines what the legal sitch should be. It lives at the root of the re
 - Scan known manifest files (package.json, requirements.txt, etc.).
 - Use an internal library (or external tool hook) to map installed dependencies to their licenses.
 - **CRITICAL**: If any dependency license is not in the `dependencyPolicy` list, the check fails hard.
+- **Deep Scanning**: For `npm`, the scanner traverses the full `node_modules` tree (no depth limit) to catch all transitive dependencies. It uses optimized batched processing to handle large dependency trees efficiently.
 
 ### `totally-legal-bro fix` (The Wizard Mode)
 
@@ -60,6 +61,7 @@ This file defines what the legal sitch should be. It lives at the root of the re
 - If NOTICE is missing, create an empty boilerplate.
 - If README.md is missing the license section, append the legal boilerplate.
 - For any file identified by `check` as missing a header, inject the correct SPDX header using the configured `requiredLicense` and `ownerName` at the top of the file, respecting the file's comment style (e.g., `#` for Python, `//` for JS, `/* */` for C).
+- **Robustness**: Uses portable regex syntax to reliably replace placeholders (like `[yyyy]`) across different `sed` versions (GNU/BSD).
 
 ### `totally-legal-bro init` (Getting Wired Up)
 

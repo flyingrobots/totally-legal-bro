@@ -8,6 +8,15 @@
 declare -i FIX_COUNT=0
 : "${GIT_CMD:=git}"
 
+# Guard against missing or invalid LIB_DIR
+: "${LIB_DIR:?LIB_DIR must be set to the directory containing utils.sh}"
+if [[ ! -f "${LIB_DIR}/utils.sh" ]]; then
+    echo "ERROR: ${LIB_DIR}/utils.sh not found" >&2
+    exit 1
+fi
+
+source "${LIB_DIR}/utils.sh"
+
 function cmd_fix() {
     echo -e "${BLUE}🔧 Auto-fixing legal compliance issues...${NC}"
     echo ""
@@ -66,6 +75,47 @@ function fix_license_file() {
     echo -n "Checking LICENSE file... "
 
     if [[ -f "LICENSE" ]]; then
+        # Check if LICENSE contains the correct license type (same logic as check.sh)
+        local license_base escaped_license_base
+        license_base=$(echo "${required_license}" | sed 's/-.*//; s/\..*//')
+        # Escape regex metacharacters in license_base for safe grep
+        escaped_license_base=$(printf '%s\n' "${license_base}" | sed 's/[.[\*^$()+?{|]/\\&/g')
+
+        if ! grep -qiE "\\b${escaped_license_base}\\b" LICENSE; then
+            echo -e "${YELLOW}regenerating (wrong license type)${NC}"
+            create_license_template "${required_license}" "${owner_name}" "${year}" > LICENSE
+            echo "  → Regenerated LICENSE file with ${required_license} template"
+            : $((FIX_COUNT++))
+            return
+        fi
+
+        # Check for placeholder text (same patterns as check.sh)
+        local placeholder_patterns=(
+            '\[Full.*text.*here\]'
+            '\[.*license.*text.*\]'
+            'TODO'
+            'PLACEHOLDER'
+            '\[yyyy\]'
+            '\[name of copyright owner\]'
+            '\[fullname\]'
+        )
+
+        local has_placeholder=false
+        for pattern in "${placeholder_patterns[@]}"; do
+            if grep -qiE "${pattern}" LICENSE; then
+                has_placeholder=true
+                break
+            fi
+        done
+
+        if [[ "${has_placeholder}" == true ]]; then
+            echo -e "${YELLOW}regenerating (placeholder detected)${NC}"
+            create_license_template "${required_license}" "${owner_name}" "${year}" > LICENSE
+            echo "  → Regenerated LICENSE file with ${required_license} template"
+            : $((FIX_COUNT++))
+            return
+        fi
+
         echo -e "${GREEN}exists${NC}"
         return
     fi
@@ -98,8 +148,8 @@ function create_license_template() {
             -e "s/<copyright holders>/${escaped_owner}/g" \
             -e "s/(c) <year>/(c) ${escaped_year}/g" \
             -e "s/Copyright (c) <year>/Copyright © ${escaped_year}/g" \
-            -e "s/\[yyyy\]/${escaped_year}/g" \
-            -e "s/\[name of copyright owner\]/${escaped_owner}/g" \
+            -e "s/\\[yyyy\\]/${escaped_year}/g" \
+            -e "s/\\[name of copyright owner\\]/${escaped_owner}/g" \
             "${template_file}"
     else
         cat <<EOF
@@ -208,11 +258,7 @@ function fix_source_headers() {
     echo "Fixing source file headers..."
 
     local files
-    files=$(${GIT_CMD} ls-files | grep -E '\\.(sh|bash|py|js|ts|tsx|jsx|go|rs|c|cpp|h|hpp|java|rb|php|tex)$' | grep -v -E '\\.(json|toml|yaml|yml|xml|md|txt)$' || true)
-
-    if [[ -z "${files}" ]]; then
-        files=$(find . -type f \( -name "*.sh" -o -name "*.bash" -o -name "*.py" -o -name "*.js" -o -name "*.ts" -o -name "*.tsx" -o -name "*.jsx" -o -name "*.go" -o -name "*.rs" -o -name "*.c" -o -name "*.cpp" -o -name "*.h" -o -name "*.hpp" -o -name "*.java" -o -name "*.rb" -o -name "*.php" -o -name "*.tex" \) | grep -v -E '\\.(json|toml|yaml|yml|xml|md|txt)$' || true)
-    fi
+    files=$(get_source_files)
 
     if [[ -z "${files}" ]]; then
         echo "  No source files found"
@@ -232,7 +278,8 @@ function fix_source_headers() {
             has_spdx=true
         fi
 
-        if echo "${header}" | grep -E -q "Copyright.*${owner_name}"; then
+        # Check for copyright with symbol (same pattern as check.sh)
+        if echo "${header}" | grep -E -q "Copyright.*(©|\(c\)).*${owner_name}"; then
             has_copyright=true
         fi
 
@@ -280,6 +327,19 @@ function inject_header() {
         has_shebang=true
     fi
 
+    # Create a cleaned version of the file without existing SPDX/Copyright header lines
+    local cleaned_file
+    cleaned_file=$(mktemp)
+
+    if [[ "${has_shebang}" == true ]]; then
+        # Keep shebang, skip old header lines, keep rest
+        head -n 1 "${file}" > "${cleaned_file}"
+        tail -n +2 "${file}" | sed -E '/^[#%\/\*[:space:]]*(SPDX-License-Identifier|Copyright)/d; /^[[:space:]]*\*\/[[:space:]]*$/d; /^[[:space:]]*\/\*[[:space:]]*$/d' >> "${cleaned_file}"
+    else
+        # No shebang, just remove header lines
+        sed -E '/^[#%\/\*[:space:]]*(SPDX-License-Identifier|Copyright)/d; /^[[:space:]]*\*\/[[:space:]]*$/d; /^[[:space:]]*\/\*[[:space:]]*$/d' "${file}" > "${cleaned_file}"
+    fi
+
     {
         if [[ "${has_shebang}" == true ]]; then
             head -n 1 "${file}"; echo ""
@@ -305,12 +365,13 @@ function inject_header() {
         fi
 
         if [[ "${has_shebang}" == true ]]; then
-            tail -n +2 "${file}"
+            tail -n +2 "${cleaned_file}"
         else
-            cat "${file}"
+            cat "${cleaned_file}"
         fi
     } > "${tmp_file}"
 
+    rm -f "${cleaned_file}"
     mv "${tmp_file}" "${file}"
     echo "  → Fixed ${file}"
 }

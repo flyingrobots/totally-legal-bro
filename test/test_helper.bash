@@ -14,7 +14,7 @@ setup_test_repo() {
 
     # Create fresh repo
     mkdir -p "${repo_dir}"
-    cd "${repo_dir}"
+    cd "${repo_dir}" || return 1
     git init >/dev/null 2>&1
     git config user.email "test@example.com"
     git config user.name "Test User"
@@ -22,14 +22,18 @@ setup_test_repo() {
     echo "${repo_dir}"
 }
 
-# Create a sample source file
+# Create a sample source file.
+# Usage: create_source_file <path> [content] [no_git_add=true|false]
 create_source_file() {
     local file="$1"
     local content="${2:-// Sample code}"
+    local no_git_add="${3:-false}" # If "true", do not git add the file
 
     mkdir -p "$(dirname "${file}")"
     echo "${content}" > "${file}"
-    git add "${file}"
+    if [[ "${no_git_add}" != "true" ]]; then
+        git add "${file}"
+    fi
 }
 
 # Create a config file
@@ -70,4 +74,38 @@ assert_output_not_contains() {
 # Run totally-legal-bro command
 run_tlb() {
     run totally-legal-bro "$@"
+}
+
+# Create a nested node_modules structure.
+# Every 3rd top-level dependency chain is GPL-3.0 (license chosen per top-level i, not per package).
+# All packages within a given top-level dependency chain share the same license.
+create_nested_npm_deps() {
+    local num_deps="${1:-5}" # Number of dependencies to create
+    local num_levels="${2:-3}" # Depth of nesting
+
+    mkdir -p node_modules
+
+    for ((i=0; i<num_deps; i++)); do
+        local current_dir="node_modules"
+        local license="MIT"
+        # Every 3rd top-level dependency chain uses GPL-3.0 (i % 3 == 0)
+        if (( i % 3 == 0 )); then
+            license="GPL-3.0"
+        fi
+
+        for ((j=0; j<num_levels; j++)); do
+            local pkg_name="pkg-$i-level-$j"
+            local pkg_path="${current_dir}/${pkg_name}"
+            mkdir -p "${pkg_path}"
+            cat > "${pkg_path}/package.json" <<EOF
+{
+  "name": "${pkg_name}",
+  "version": "1.0.${i}",
+  "license": "${license}"
+}
+EOF
+            current_dir="${pkg_path}/node_modules"
+            mkdir -p "${current_dir}" # Create nested node_modules for next level
+        done
+    done
 }

@@ -29,16 +29,16 @@ function cmd_init() {
     local setup_hooks="y"
     local setup_ci="y"
 
-    read -p "Required License (SPDX ID, e.g., MIT, Apache-2.0): " required_license
-    while [[ -z "${required_license}" ]]; do
+    read -r -p "Required License (SPDX ID, e.g., MIT, Apache-2.0): " required_license
+    while [[ -z "${required_license//[[:space:]]/}" ]]; do
         echo -e "${RED}License is required${NC}"
-        read -p "Required License (SPDX ID, e.g., MIT, Apache-2.0): " required_license
+        read -r -p "Required License (SPDX ID, e.g., MIT, Apache-2.0): " required_license
     done
 
-    read -p "Owner Name (e.g., Your Name or Company): " owner_name
-    while [[ -z "${owner_name}" ]]; do
+    read -r -p "Owner Name (e.g., Your Name or Company): " owner_name
+    while [[ -z "${owner_name//[[:space:]]/}" ]]; do
         echo -e "${RED}Owner name is required${NC}"
-        read -p "Owner Name (e.g., Your Name or Company): " owner_name
+        read -r -p "Owner Name (e.g., Your Name or Company): " owner_name
     done
 
     # Optional: dependency policy
@@ -49,8 +49,8 @@ function cmd_init() {
 
     local dep_licenses=()
     while true; do
-        read -p "License (or blank to finish): " license
-        if [[ -z "${license}" ]]; then
+        read -r -p "License (or blank to finish): " license
+        if [[ -z "${license//[[:space:]]/}" ]]; then
             break
         fi
         dep_licenses+=("${license}")
@@ -110,13 +110,17 @@ function setup_git_hook() {
 
     # Check if hook already exists
     if [[ -f "${hook_file}" ]]; then
-        # Check if our hook is already in there
+        # If our hook is already in there, just return (no further action needed)
         if grep -q "totally-legal-bro check" "${hook_file}"; then
             echo -e "${YELLOW}Git hook already configured${NC}"
             return
         fi
 
-        # Append to existing hook
+        # Back up before modifying
+        cp "${hook_file}" "${hook_file}.bak"
+        echo -e "${YELLOW}Backed up existing pre-commit hook to ${hook_file}.bak${NC}"
+
+        # Otherwise, append to existing hook
         echo -e "${YELLOW}Appending to existing pre-commit hook${NC}"
         cat >> "${hook_file}" <<'EOF'
 

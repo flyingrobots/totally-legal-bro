@@ -62,15 +62,19 @@ function scan_dependencies() {
                 fi
 
                 # Gather licenses by scanning node_modules package.json files
-                while IFS= read -r pkgfile; do
-                    local pkg license
-                    pkg=$(jq -r '.name + "@" + (.version // "")' "${pkgfile}" 2>/dev/null || echo "unknown")
-                    license=$(jq -r '.license // "UNKNOWN"' "${pkgfile}" 2>/dev/null || echo "UNKNOWN")
+                # Traverse full npm tree (no depth cap) to catch transitive deps
+                while IFS= read -r -d '' pkgfile; do
+                    local result pkg license
+                    # Extract pkg and license in one go, separated by tab
+                    result=$(jq -r '(.name + "@" + (.version // "")) + "\t" + (.license // "UNKNOWN")' "${pkgfile}" 2>/dev/null || printf "unknown\tUNKNOWN")
+
+                    # Split result on tab character into pkg and license variables
+                    IFS=$'\t' read -r pkg license <<< "${result}"
 
                     if ! is_license_allowed "${license}"; then
                         violations+=("${pkg} (${license})")
                     fi
-                done < <(find node_modules -maxdepth 3 -type f -name package.json -print)
+                done < <(find node_modules -type f -name package.json -print0)
                 ;;
             *)
                 notes+=("${pm} scanning TODO")

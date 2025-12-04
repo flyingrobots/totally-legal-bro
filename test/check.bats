@@ -166,3 +166,57 @@ EOF
     run_tlb check
     [ "$status" -eq 0 ]
 }
+
+@test "check: warnings do not cause check to fail" {
+    create_config "MIT" "Test Owner"
+
+    # Create valid LICENSE and README (will pass)
+    cat > LICENSE <<EOF
+MIT License
+
+Copyright (c) 2025 Test Owner
+
+Permission is hereby granted...
+EOF
+    git add LICENSE
+
+    cat > README.md <<EOF
+# Project
+## License
+MIT
+EOF
+    git add README.md
+
+    # No NOTICE file - will warn
+    # Create package.json but no dependencyPolicy - will warn
+    cat > package.json <<'EOF'
+{
+  "name": "test",
+  "version": "1.0.0"
+}
+EOF
+    git add package.json
+
+    # Check should pass despite warnings
+    run_tlb check
+    [ "$status" -eq 0 ]
+    assert_output_contains "All checks passed"
+    assert_output_contains "WARN"
+}
+
+@test "check: actual failures still cause check to fail" {
+    create_config "MIT" "Test Owner"
+
+    # Missing LICENSE - will fail
+    cat > README.md <<EOF
+# Project
+## License
+MIT
+EOF
+    git add README.md
+
+    run_tlb check
+    [ "$status" -eq 1 ]
+    assert_output_contains "check(s) failed"
+    assert_output_contains "LICENSE file not found"
+}
