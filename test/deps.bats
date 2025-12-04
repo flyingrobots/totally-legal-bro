@@ -45,6 +45,22 @@ EOF
   assert_output_contains "badpkg@1.0.0 (GPL-3.0)"
 }
 
+@test "deps: npm scan catches deep transitive license violations" {
+  create_config "MIT" "Tester"
+  mkdir -p node_modules/parent/node_modules/child/node_modules/deep
+  cat > node_modules/parent/node_modules/child/node_modules/deep/package.json <<'EOF'
+{
+  "name": "deep-bad",
+  "version": "2.0.0",
+  "license": "GPL-3.0"
+}
+EOF
+
+  run totally-legal-bro check --manifests package.json
+  [ "$status" -ne 0 ]
+  assert_output_contains "deep-bad@2.0.0 (GPL-3.0)"
+}
+
 @test "deps: warns when node_modules missing" {
   create_config "MIT" "Tester"
   run totally-legal-bro check --manifests package.json

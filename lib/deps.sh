@@ -62,6 +62,7 @@ function scan_dependencies() {
                 fi
 
                 # Gather licenses by scanning node_modules package.json files
+                # Traverse full npm tree (no depth cap) to catch transitive deps
                 while IFS= read -r pkgfile; do
                     local pkg license
                     pkg=$(jq -r '.name + "@" + (.version // "")' "${pkgfile}" 2>/dev/null || echo "unknown")
@@ -70,7 +71,7 @@ function scan_dependencies() {
                     if ! is_license_allowed "${license}"; then
                         violations+=("${pkg} (${license})")
                     fi
-                done < <(find node_modules -maxdepth 3 -type f -name package.json -print)
+                done < <(find node_modules -type f -name package.json -print)
                 ;;
             *)
                 notes+=("${pm} scanning TODO")
