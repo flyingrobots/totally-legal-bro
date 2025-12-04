@@ -19,7 +19,8 @@ setup() {
 
 teardown() {
     cd /
-    rm -rf "${REPO_DIR}" "${MOCK_HOME}"
+    [[ -n "${REPO_DIR:-}" ]] && rm -rf "${REPO_DIR}"
+    rm -rf "${MOCK_HOME}"
     unset HOME
 }
 

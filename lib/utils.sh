@@ -16,21 +16,19 @@ function get_source_files() {
     local EXCLUDED_FILE_TYPES='\.(json|toml|yaml|yml|xml|md|txt)$'
 
     # Check if in a git repository
-    if command -v git &> /dev/null && git rev-parse --is-inside-work-tree &> /dev/null;
- then
+    if command -v git &> /dev/null && git rev-parse --is-inside-work-tree &> /dev/null; then
         files=$(git ls-files | grep -E "${SOURCE_FILE_EXTENSIONS}" | grep -v -E "${EXCLUDED_FILE_TYPES}" || true)
     else
         # Fallback to find if not a git repo or git command fails
         files=$(find . -type f \
-                    -name "*.sh" -o -name "*.bash" -o -name "*.py" -o \
-                    -name "*.js" -o -name "*.ts" -o -name "*.tsx" -o \
-                    -name "*.jsx" -o -name "*.go" -o -name "*.rs" -o \
-                    -name "*.c" -o -name "*.cpp" -o -name "*.h" -o \
-                    -name "*.hpp" -o -name "*.java" -o -name "*.rb" -o \
-                    -name "*.php" -o -name "*.tex"
-                \
-                -and -not -regex ".*${EXCLUDED_FILE_TYPES}" \
-                || true)
+                    \( -name "*.sh" -o -name "*.bash" -o -name "*.py" -o \
+                       -name "*.js" -o -name "*.ts" -o -name "*.tsx" -o \
+                       -name "*.jsx" -o -name "*.go" -o -name "*.rs" -o \
+                       -name "*.c" -o -name "*.cpp" -o -name "*.h" -o \
+                       -name "*.hpp" -o -name "*.java" -o -name "*.rb" -o \
+                       -name "*.php" -o -name "*.tex" \) \
+                    -not -regex ".*${EXCLUDED_FILE_TYPES}" \
+                    || true)
     fi
 
     echo "${files}"

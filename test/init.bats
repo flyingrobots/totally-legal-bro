@@ -114,4 +114,7 @@ teardown() {
     [ "$status" -eq 0 ]
     run grep "totally-legal-bro check" .git/hooks/pre-commit
     [ "$status" -eq 0 ]
+
+    # Ensure the merged hook remains executable
+    [ -x .git/hooks/pre-commit ]
 }
